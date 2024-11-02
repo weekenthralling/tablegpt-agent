@@ -5,22 +5,9 @@
 
 -----
 
-## Table of Contents
-
-- [TableGPT Agent](#tablegpt-agent)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-  - [Installation](#installation)
-  - [Quick Start](#quick-start)
-  - [Workflow](#workflow)
-    - [Main workflow](#main-workflow)
-    - [File Upload workflow](#file-upload-workflow)
-    - [Code Execution](#code-execution)
-    - [Plugins](#plugins)
-
 ## Introduction
 
-`tablegpt-agent` is a pre-built agent for TableGPT ([github](https://github.com/tablegpt/tablegpt), [huggingface](https://huggingface.co/tablegpt/tablegpt)), an LLM for table-based question answering. This agent is built on top of the [Langgraph](https://github.com/langchain-ai/langgraph) library and provides a simple interface for interacting with the TableGPT model.
+`tablegpt-agent` is a pre-built agent for TableGPT2 ([github](https://github.com/tablegpt/tablegpt), [huggingface](https://huggingface.co/tablegpt/tablegpt)), an LLM for table-based question answering. This agent is built on top of the [Langgraph](https://github.com/langchain-ai/langgraph) library and provides a simple interface for interacting with the TableGPT model.
 
 ## Installation
 
@@ -86,3 +73,19 @@ The `tablegpt-agent` directs `tablegpt` to generate python code for performing d
   <!-- guard chain -->
   <!-- RAG -->
   <!-- normalization chain -->
+
+## Liscence
+
+## Model Card
+See [model_card.md](https://huggingface.co/tablegpt/tablegpt).
+
+## Citation
+
+If you find our work helpful, please cite us by
+
+```
+
+@misc{
+}
+
+```
