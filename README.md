@@ -7,7 +7,7 @@
 
 ## Introduction
 
-`tablegpt-agent` is a pre-built agent for TableGPT2 ([github](https://github.com/tablegpt/tablegpt), [huggingface](https://huggingface.co/tablegpt/tablegpt)), an LLM for table-based question answering. This agent is built on top of the [Langgraph](https://github.com/langchain-ai/langgraph) library and provides a simple interface for interacting with the TableGPT model.
+`tablegpt-agent` is a pre-built agent for TableGPT2 ([huggingface](https://huggingface.co/collections/tablegpt/tablegpt2-67265071d6e695218a7e0376)), a series of LLMs for table-based question answering. This agent is built on top of the [Langgraph](https://github.com/langchain-ai/langgraph) library and provides a simple interface for interacting with the TableGPT model.
 
 ## Installation
 
