@@ -56,18 +56,19 @@ def create_file_reading_workflow(
     normalize_llm: BaseLanguageModel | None = None,
     verbose: bool = False,
 ):
-    """_summary_
+    """Create a workflow for reading and processing files using an agent-based approach.
 
     Args:
-        nlines (int): _description_
-        var_name (str): _description_
-        pybox_manager (BasePyBoxManager): _description_
-        workdir (Path | None, optional): _description_. Defaults to None.
-        session_id (str | None, optional): _description_. Defaults to None.
-        model_type (str | None, optional): _description_. Defaults to None.
-        enable_normalization (bool, optional): _description_. Defaults to False.
-        normalize_llm (BaseLanguageModel | None, optional): _description_. Defaults to None.
-        verbose (bool, optional): _description_. Defaults to False.
+        pybox_manager (BasePyBoxManager): A Python code sandbox delegator.
+        workdir (Path | None, optional): The working directory for `pybox` operations. Defaults to None.
+        session_id (str | None, optional): An optional session identifier used to associate with `pybox`. Defaults to None.
+        nlines (int | None, optional): The number of lines to display from the dataset head. Defaults to 5 if not provided.
+        model_type (str | None, optional): Read the data header into different formats according to the model type. Defaults to None.
+        normalize_llm (BaseLanguageModel | None, optional): An optional language model used for data normalization. Defaults to None.
+        verbose (bool, optional): Flag to enable verbose logging for debugging. Defaults to False.
+
+    Returns:
+        StateGraph: The compiled state graph representing the workflow for reading and processing files.
     """
     if nlines is None:
         nlines = 5
