@@ -76,15 +76,15 @@ async for event in agent.astream_events(
 
 ### File Reading workflow
 
-We separate the file reading workflow from the data analysis workflow to maintain greater control over how the LLM inspects the dataset files. Typically, if you let the LLM inspect the dataset itself, it uses the `df.head()` function to get a preview of the data. While this is sufficient for basic cases, we have implemented a more structured approach by hard-coding the file reading workflow into several steps:
+We separate the file reading workflow from the data analysis workflow to maintain greater control over how the LLM inspects the dataset files. Typically, if you let the LLM inspect the dataset itself, it uses the `df.head()` function to preview the data. While this is sufficient for basic cases, we have implemented a more structured approach by hard-coding the file reading workflow into several steps:
 
-- `normalization` (optional): For some Excel files, the content may not be 'pandas-friendly'. We include an optional normalization step to transform the Excel content into a more 'pandas-friendly' way.
-- `df.info()`: Unlike `df.head()`, `df.info()` provides a different aspect of the dataset, such as the data types of each column, and number of non-null values, which also indicates whether a column contains NaN. This insight helps the LLM understand the structure and quality of the data.
+- `normalization` (optional): For some Excel files, the content may not be 'pandas-friendly'. We include an optional normalization step to transform the Excel content into a more suitable format for pandas.
+- `df.info()`: Unlike `df.head()`, `df.info()` provides insights into the dataset's structure, such as the data types of each column and the number of non-null values, which also indicates whether a column contains NaN. This insight helps the LLM understand the structure and quality of the data.
 - `df.head()`: The final step displays the first n rows of the dataset, where n is configurable. A larger value for n allows the LLM to glean more information from the dataset; however, too much detail may divert its attention from the primary task.
 
 ### Code Execution
 
-The `tablegpt-agent` directs `tablegpt` to generate python code for data analysis. This code is then executed within a sandbox environment to maintain system security. The execution is managed by the [pybox](https://github.com/edwardzjl/pybox) library, which provides a simple way to run Python code outside the main process.
+The `tablegpt-agent` directs `tablegpt` to generate Python code for data analysis. This code is then executed within a sandbox environment to ensure system security. The execution is managed by the [pybox](https://github.com/edwardzjl/pybox) library, which provides a simple way to run Python code outside the main process.
 
 ### Plugins
 
