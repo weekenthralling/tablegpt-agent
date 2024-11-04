@@ -16,6 +16,7 @@ from tablegpt.chains.data_normalizer import (
     get_table_reformat_chain,
     wrap_normalize_code,
 )
+from tablegpt.chains.translation import get_translation_chain
 from tablegpt.errors import NoAttachmentsError
 from tablegpt.tools import IPythonTool, markdown_console_template
 from tablegpt.utils import get_raw_table_info
@@ -47,24 +48,26 @@ ENCODER_INPUT_SEG_NUM = 2
 
 
 def create_file_reading_workflow(
+    llm: BaseLanguageModel,
     pybox_manager: BasePyBoxManager,
     *,
     workdir: Path | None = None,
     session_id: str | None = None,
     nlines: int | None = None,
-    model_type: str | None = None,
     normalize_llm: BaseLanguageModel | None = None,
+    locale: str | None = None,
     verbose: bool = False,
 ):
     """Create a workflow for reading and processing files using an agent-based approach.
 
     Args:
+        llm (Runnable): The primary language model for processing user input.
         pybox_manager (BasePyBoxManager): A Python code sandbox delegator.
         workdir (Path | None, optional): The working directory for `pybox` operations. Defaults to None.
         session_id (str | None, optional): An optional session identifier used to associate with `pybox`. Defaults to None.
         nlines (int | None, optional): The number of lines to display from the dataset head. Defaults to 5 if not provided.
-        model_type (str | None, optional): Read the data header into different formats according to the model type. Defaults to None.
         normalize_llm (BaseLanguageModel | None, optional): An optional language model used for data normalization. Defaults to None.
+        locate (str | None, optional): The locale of the user. Defaults to None.
         verbose (bool, optional): Flag to enable verbose logging for debugging. Defaults to False.
 
     Returns:
@@ -72,6 +75,15 @@ def create_file_reading_workflow(
     """
     if nlines is None:
         nlines = 5
+
+    # Read the data header into different formats according to the model type.
+    model_type = None
+    if llm.metadata is not None:
+        model_type = llm.metadata.get("model_type")
+
+    translation_chain = None
+    if locale is not None:
+        translation_chain = get_translation_chain(llm=llm)
 
     tools = [IPythonTool(pybox_manager=pybox_manager, cwd=workdir, session_id=session_id)]
     tool_executor = ToolNode(tools)
@@ -122,6 +134,9 @@ def create_file_reading_workflow(
         var_name = state["entry_message"].additional_kwargs.get("var_name", "df")
 
         thought = f"我已经收到您的数据文件，我需要查看文件内容以对数据集有一个初步的了解。首先我会读取数据到 `{var_name}` 变量中，并通过 `{var_name}.info` 查看 NaN 情况和数据类型。"  # noqa: RUF001
+        if translation_chain is not None:
+            thought = await translation_chain.ainvoke(input={"locale": locale, "input": thought})
+
         read_df_code = f"""# Load the data into a DataFrame
 {var_name} = read_df('{filename}')"""
 
@@ -175,6 +190,8 @@ def create_file_reading_workflow(
         var_name = state["entry_message"].additional_kwargs.get("var_name", "df")
 
         thought = f"""接下来我将用 `{var_name}.head({nlines})` 来查看数据集的前 {nlines} 行。"""
+        if translation_chain is not None:
+            thought = translation_chain.invoke(input={"locale": locale, "input": thought})
 
         # The input visible to the LLM can prevent it from blindly imitating the actions of our encoder.
         default_tool_input = f"""# Show the first {nlines} rows to understand the structure
@@ -231,6 +248,10 @@ print(str(inspect_df({var_name})), flush=True)"""
             raise NoAttachmentsError
 
         text = f"我已经了解了数据集 {filename} 的基本信息。请问我可以帮您做些什么？"  # noqa: RUF001
+
+        if translation_chain is not None:
+            text = translation_chain.invoke(input={"locale": locale, "input": text})
+
         return {
             "messages": [
                 AIMessage(
