@@ -29,16 +29,19 @@ pip install -r requirements.txt
 
 </details>
 
-### Text2SQL Evaluation
+### Dataset
 
-Steps to Run
-
-1.	download database files
 The necessary database files are available on Google Drive. Download the files from the following URLs:
 - [spider dev](https://drive.google.com/file/d/15xVsPLEVHXxyfczrAjYYKUEzFX6Jxjzn/view?usp=sharing)
 - [spider test](https://drive.google.com/file/d/1O_Bs4Nw4vIjKx2T5IXUgjhG4AxVxCl78/view?usp=sharing)
 - [bird dev](https://drive.google.com/file/d/1gXS8syJC0WcyDzX3LT2AdDxs9peWhsyV/view?usp=sharing)
 - [RealTabBench](https://drive.google.com/file/d/1-PHf81VKlsI7jiREZ3v82UkHGUghrsTT/view?usp=sharing)
+
+### Text2SQL Evaluation
+
+Steps to Run
+
+1.	download database files (bird or spider)
 
 2.	extract files
 Download and unzip each file into its respective directory:
@@ -56,4 +59,25 @@ Execute the evaluation script to obtain accuracy metrics for the bird or spider 
    python run_text2sql_eval.py --model_path <MODEL_PATH> \
    --eval_data_name <enum ["bird", "spider"]> \
    --mode <enum ["dev", "test"]>
+   ```
+
+### Agent Evaluation on RealTabBench
+
+1.	download data files from google drive
+   
+2. create virtual environment
+   ```bash
+   python -m venv venv
+   source ./venv/bin/activate  # On Windows, use `.\venv\Scripts\activate`
+   ```
+
+3. install dependencies for eval
+   ```bash
+   cd realtabbench/agent_eval
+   pip install -r requirements.txt
+   ```
+
+4. run evaluation script
+   ```bash
+   python -m agent_eval --config path/to/your/config.yaml
    ```
