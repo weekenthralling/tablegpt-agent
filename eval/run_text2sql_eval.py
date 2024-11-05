@@ -6,19 +6,19 @@ from text2sql.src.gpt_request_encoder import generate_main_encoder
 
 def main(args):
     if args.eval_data_name == "bird" and args.mode == "dev":
-        args.db_root_path = "realtabbench/evalset/bird_data/dev_databases"
-        args.eval_data_path = "realtabbench/evalset/bird_data/dev.json"
-        args.ground_truth_path = "realtabbench/evalset/bird_data/dev.sql"
+        args.db_root_path = "eval/evalset/bird_data/dev_databases"
+        args.eval_data_path = "eval/evalset/bird_data/dev.json"
+        args.ground_truth_path = "eval/evalset/bird_data/dev.sql"
 
     if args.eval_data_name == "spider" and args.mode == "test":
-        args.db_root_path = "realtabbench/evalset/spider_data/test_database"
-        args.eval_data_path = "realtabbench/evalset/spider_data/test.json"
-        args.ground_truth_path = "realtabbench/evalset/spider_data/test_gold.sql"
+        args.db_root_path = "eval/evalset/spider_data/test_database"
+        args.eval_data_path = "eval/evalset/spider_data/test.json"
+        args.ground_truth_path = "eval/evalset/spider_data/test_gold.sql"
 
     if args.eval_data_name == "spider" and args.mode == "dev":
-        args.db_root_path = "realtabbench/evalset/spider_data/dev_database"
-        args.eval_data_path = "realtabbench/evalset/spider_data/dev.json"
-        args.ground_truth_path = "realtabbench/evalset/spider_data/dev_gold.sql"
+        args.db_root_path = "eval/evalset/spider_data/dev_database"
+        args.eval_data_path = "eval/evalset/spider_data/dev.json"
+        args.ground_truth_path = "eval/evalset/spider_data/dev_gold.sql"
 
     if args.is_use_knowledge:
         args.use_knowledge = "True"
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     args_parser.add_argument('--eval_data_name', type=str, choices=["bird", "spider"], default="bird")
     args_parser.add_argument('--mode', type=str, choices=["dev", "test"], default="dev")
     args_parser.add_argument('--is_use_knowledge', default=True, action="store_true")
-    args_parser.add_argument('--data_output_path', type=str, default="realtabbench/text2sql/output")
+    args_parser.add_argument('--data_output_path', type=str, default="eval/text2sql/output")
     args_parser.add_argument('--chain_of_thought', type=str, default="True")
     args_parser.add_argument('--model_path', type=str) # , required=True
     args_parser.add_argument('--gpus_num', type=int, default=1)
