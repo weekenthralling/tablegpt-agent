@@ -38,6 +38,7 @@ The necessary database files are available on Google Drive. Download the files f
 - [spider dev](https://drive.google.com/file/d/15xVsPLEVHXxyfczrAjYYKUEzFX6Jxjzn/view?usp=sharing)
 - [spider test](https://drive.google.com/file/d/1O_Bs4Nw4vIjKx2T5IXUgjhG4AxVxCl78/view?usp=sharing)
 - [bird dev](https://drive.google.com/file/d/1gXS8syJC0WcyDzX3LT2AdDxs9peWhsyV/view?usp=sharing)
+- [RealTabBench](https://drive.google.com/file/d/1-PHf81VKlsI7jiREZ3v82UkHGUghrsTT/view?usp=sharing)
 
 2.	extract files
 Download and unzip each file into its respective directory:
@@ -52,7 +53,7 @@ Download and unzip each file into its respective directory:
 3. run evaluation script
 Execute the evaluation script to obtain accuracy metrics for the bird or spider datasets:
    ```bash
-   python realtabbench/run_text2sql_eval.py --model_path <MODEL_PATH> \
+   python run_text2sql_eval.py --model_path <MODEL_PATH> \
    --eval_data_name <enum ["bird", "spider"]> \
    --mode <enum ["dev", "test"]>
    ```
