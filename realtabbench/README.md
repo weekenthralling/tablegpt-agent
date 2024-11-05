@@ -25,7 +25,7 @@ Currently, we have only open-sourced the evaluation scripts and data for the Tex
 
 ⏬ To use this framework, please first install the repository from GitHub:
 
-\```shell
+```shell
 
 git clone https://github.com/tablegpt/tablegpt-agent
 
@@ -33,7 +33,7 @@ cd realtabbench
 
 pip install -r requirements.txt
 
-\```
+```
 
 </div>
 
@@ -41,7 +41,7 @@ pip install -r requirements.txt
 
 ### Text2SQL evaluation
 
-[!Tips]
+**Running steps**
 
 1.   The database files are shared in google drive. The file urls are as follows:
 
