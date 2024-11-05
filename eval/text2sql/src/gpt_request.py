@@ -132,7 +132,7 @@ def generate_combined_prompts_one(db_path, question, knowledge=None):
     schema_prompt = generate_schema_prompt(db_path, num_rows=None)  # This is the entry to collect values
     comment_prompt = generate_comment_prompt(question, knowledge)
 
-    return schema_prompt + "\n\n" + comment_prompt + cot_wizard() + "\nSELECT "
+    return schema_prompt + "\n\n" + comment_prompt + cot_wizard()
 
 
 def quota_giveup(e):
