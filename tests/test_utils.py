@@ -4,11 +4,9 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
-from langchain_core.documents import Document
 from langchain_core.messages import BaseMessage
 from tablegpt.utils import (
     filter_content,
-    format_columns,
     get_raw_table_info,
     path_from_uri,
 )
@@ -63,54 +61,6 @@ class TestPathFromUri(unittest.TestCase):
         uri = "file:///home/user/file%20name.txt"
         expected_path = Path("/home/user/file name.txt")
         assert path_from_uri(uri) == expected_path
-
-
-class TestFormatColumns(unittest.TestCase):
-    def test_format_empty_column_docs(self):
-        formated_columns = format_columns([])
-        assert formated_columns == ""
-
-    def test_format_column_docs(self):
-        docs = [
-            Document(
-                page_content="column:Sex",
-                metadata={
-                    "file_name": "foo.csv",
-                    "column": "Sex",
-                    "dtype": "string",
-                    "n_unique": 2,
-                    "values": ["male", "female"],
-                },
-            )
-        ]
-        formated_columns = format_columns(docs)
-        hint = """
-Here are some extra column information that might help you understand the dataset:
-- foo.csv:
-  - {"column": Sex, "dtype": "string", "values": ["male", "female"]}
-"""
-        assert formated_columns == hint
-
-    def test_format_and_compress_column(self):
-        docs = [
-            Document(
-                page_content="column:Sex",
-                metadata={
-                    "file_name": "foo.csv",
-                    "column": "Sex",
-                    "dtype": "string",
-                    "n_unique": 3,
-                    "values": ["male", "female", "unknown"],
-                },
-            )
-        ]
-        hint = """
-Here are some extra column information that might help you understand the dataset:
-- foo.csv:
-  - {"column": Sex, "dtype": "string", "values": ["mal...", "fem...", ...]}
-"""
-        formated_columns = format_columns(docs, dataset_cell_length_threshold=3, max_dataset_cells=2)
-        assert formated_columns == hint
 
 
 class TestGetRawTableInfo(unittest.TestCase):
