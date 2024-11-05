@@ -41,35 +41,34 @@ from datetime import date
 
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
-from tablegpt.agent import create_tablegpt_graph
 from pybox import LocalPyBoxManager
+from tablegpt.agent import create_tablegpt_graph
 
 
 # tablegpt-agent fully supports async invocation
 async def main() -> None:
-  llm = ChatOpenAI(openai_api_base=YOUR_VLLM_URL, openai_api_key="whatever", model_name="TableGPT2-7B")
+    llm = ChatOpenAI(openai_api_base="YOUR_VLLM_URL", openai_api_key="whatever", model_name="TableGPT2-7B")
 
-  # Use local pybox manager for development and testing
-  pybox_manager = LocalPyBoxManager()
+    # Use local pybox manager for development and testing
+    pybox_manager = LocalPyBoxManager()
 
-  agent = create_tablegpt_graph(
-    llm=llm,
-    pybox_manager=pybox_manager,
-  )
+    agent = create_tablegpt_graph(
+        llm=llm,
+        pybox_manager=pybox_manager,
+    )
 
-  message = HumanMessage(content="Hi")
-  input = {
-      "messages": [message],
-      "parent_id": "some-parent-id",
-      "date": date.today(),
-  }
+    message = HumanMessage(content="Hi")
+    _input = {
+        "messages": [message],
+        "parent_id": "some-parent-id",
+        "date": date.today(),  # noqa: DTZ011
+    }
 
-
-  async for event in agent.astream_events(
-      input=input,
-      version="v2",
-  ):
-      print(event)
+    async for event in agent.astream_events(
+        input=_input,
+        version="v2",
+    ):
+        print(event)  # noqa: T201
 
 
 asyncio.run(main())
@@ -85,10 +84,9 @@ from typing import TypedDict
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-
+from pybox import LocalPyBoxManager
 from tablegpt.agent import create_tablegpt_graph
 from tablegpt.agent.file_reading import Stage
-from pybox import LocalPyBoxManager
 
 
 class Attachment(TypedDict):
@@ -126,7 +124,7 @@ async def main() -> None:
             "processing_stage": Stage.UPLOADED,
             "messages": [attachment_msg],
             "parent_id": "some-parent-id1",
-            "date": date.today(),
+            "date": date.today(),  # noqa: DTZ011
         },
         config={
             "configurable": {"thread_id": "some-thread-id"},
@@ -140,13 +138,13 @@ async def main() -> None:
             # After using checkpoint, you only need to add new messages here.
             "messages": [human_message],
             "parent_id": "some-parent-id2",
-            "date": date.today(),
+            "date": date.today(),  # noqa: DTZ011
         },
         version="v2",
         # We configure the same thread_id to use checkpoints to retrieve the memory of the last run.
         config={"configurable": {"thread_id": "some-thread-id"}},
     ):
-        print(event)
+        print(event)  # noqa: T201
 
 
 asyncio.run(main())

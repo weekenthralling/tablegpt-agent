@@ -5,10 +5,9 @@ from typing import TypedDict
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-
+from pybox import LocalPyBoxManager
 from tablegpt.agent import create_tablegpt_graph
 from tablegpt.agent.file_reading import Stage
-from pybox import LocalPyBoxManager
 
 
 class Attachment(TypedDict):
@@ -46,7 +45,7 @@ async def main() -> None:
             "processing_stage": Stage.UPLOADED,
             "messages": [attachment_msg],
             "parent_id": "some-parent-id1",
-            "date": date.today(),
+            "date": date.today(),  # noqa: DTZ011
         },
         config={
             "configurable": {"thread_id": "some-thread-id"},
@@ -60,13 +59,13 @@ async def main() -> None:
             # After using checkpoint, you only need to add new messages here.
             "messages": [human_message],
             "parent_id": "some-parent-id2",
-            "date": date.today(),
+            "date": date.today(),  # noqa: DTZ011
         },
         version="v2",
         # We configure the same thread_id to use checkpoints to retrieve the memory of the last run.
         config={"configurable": {"thread_id": "some-thread-id"}},
     ):
-        print(event)
+        print(event)  # noqa: T201
 
 
 asyncio.run(main())
