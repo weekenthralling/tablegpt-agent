@@ -1,4 +1,4 @@
-# RealTabBench:  A varies of table-related benchmarks evaluations for tablegpt
+# Benchmark Evaluations:  A varies of (academical) table-related benchmarks evaluations for tablegpt
 
 ## Overview
 
@@ -8,11 +8,10 @@ Given the complexity of table related tasks and the uncertainty of input instruc
 
 - ✨Table-Bench.
 - ✨Text2Sql.
-- ✨TableInstruct,  which includes a series of table-related evaluation benchmarks.
+- ✨TableInstruct:  which includes a series of table-related evaluation benchmarks.
+- ✨RealTabBench:  Our new benchmark specifically designed to evaluate LLMs on complex, real-world tabular data scenarios, including irregular table structures, anonymized fields, and multifaceted queries. Note: only a portion of this benchmark is released.)
 
-We have built an inference method based on the  local model path using vLLM as the backend, and defined a set of example prompts templates for the above benchmarks.
-
-Currently, we have only open-sourced the evaluation scripts and data for the Text2Sql task.
+We have built an inference method based on the local model path using vLLM as the backend, and defined a set of example prompts templates for the above benchmarks.
 
 ## Usage
 
@@ -42,7 +41,7 @@ Running steps
 - [spider test](https://drive.google.com/file/d/1O_Bs4Nw4vIjKx2T5IXUgjhG4AxVxCl78/view?usp=sharing)
 - [bird dev](https://drive.google.com/file/d/1gXS8syJC0WcyDzX3LT2AdDxs9peWhsyV/view?usp=sharing)
 
-1. Download and unzip all the zip files to the specified directories:
+2. Download and unzip all the zip files to the specified directories:
 
    ```bash
    unzip bird_dev_database.zip -d realtabbench/evalset/bird_data \
@@ -52,7 +51,7 @@ Running steps
    unzip spider_test_database.zip -d realtabbench/evalset/spider_data
    ```
 
-1. run eval script to get bird or spider metric(accuracy)
+3. run eval script to get bird or spider metric(accuracy)
 
    ```bash
    python realtabbench/run_text2sql_eval.py --model_path <MODEL_PATH> \
