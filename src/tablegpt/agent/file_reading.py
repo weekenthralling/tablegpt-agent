@@ -99,7 +99,7 @@ def create_file_reading_workflow(
     async def generate_normalization_code(state: AgentState) -> str:
         if attachments := state["entry_message"].additional_kwargs.get("attachments"):
             # TODO: we only support one file for now
-            filename = attachments[0].filename
+            filename = attachments[0]["filename"]
         else:
             raise NoAttachmentsError
 
@@ -127,7 +127,7 @@ def create_file_reading_workflow(
     async def get_df_info(state: AgentState) -> dict:
         if attachments := state["entry_message"].additional_kwargs.get("attachments"):
             # TODO: we only support one file for now
-            filename = attachments[0].filename
+            filename = attachments[0]["filename"]
         else:
             raise NoAttachmentsError
 
@@ -243,7 +243,7 @@ print(str(inspect_df({var_name})), flush=True)"""
     def get_final_answer(state: AgentState) -> dict:
         if attachments := state["entry_message"].additional_kwargs.get("attachments"):
             # TODO: we only support one file for now
-            filename = attachments[0].filename
+            filename = attachments[0]["filename"]
         else:
             raise NoAttachmentsError
 
