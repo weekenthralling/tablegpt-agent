@@ -664,3 +664,6 @@ fabric.properties
 # Evalset sqlite and csv files
 *.csv
 *.sqlite
+
+# Preserve use case data
+!examples/datasets/*.csv
