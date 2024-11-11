@@ -1,36 +1,25 @@
 # Home
 
-This site contains the project documentation for the
-`calculator` project that is a toy module used in the
-Real Python tutorial
-[Build Your Python Project Documentation With MkDocs](
-    https://realpython.com/python-project-documentation-with-mkdocs/).
-Its aim is to give you a framework to build your
-project documentation using Python, MkDocs,
-mkdocstrings, and the Material for MkDocs theme.
+[![PyPI - Version](https://img.shields.io/pypi/v/tablegpt-agent.svg)](https://pypi.org/project/tablegpt-agent)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/tablegpt-agent.svg)](https://pypi.org/project/tablegpt-agent)
+
+## Introduction
+
+tablegpt-agent is a pre-built agent for [TableGPT2 (huggingface)](https://huggingface.co/tablegpt/TableGPT2-7B), a series of LLMs for table-based question answering. This agent is built on top of the [Langgraph](https://www.langchain.com/langgraph) library and provides a user-friendly interface for interacting with TableGPT2.
 
 ## Table Of Contents
-
-The documentation follows the best practice for
-project documentation as described by Daniele Procida
-in the [Diátaxis documentation framework](https://diataxis.fr/)
-and consists of four separate parts:
 
 1. [Tutorials](tutorials.md)
 2. [How-To Guides](how-to-guides.md)
 3. [Reference](reference.md)
 4. [Explanation](explanation.md)
 
-Quickly find what you're looking for depending on
-your use case by looking at the different pages.
+## Contributing
 
-## Project Overview
-
-::: tablegpt
+For more information on how to contribute, see [here](https://github.com/tablegpt/tablegpt-agent/blob/main/CONTRIBUTING.md).
 
 ## Acknowledgements
 
-I want to thank my house plants for providing me with
-a negligible amount of oxygen each day. Also, I want
-to thank the sun for providing more than half of their
-nourishment free of charge.
+We extend our sincere gratitude to all contributors and collaborators who played a pivotal role in the development of tablegpt-agent. Special thanks to our team members and the open-source community, whose insights and feedback were invaluable throughout the project.
+
+Thank you to our early users for their suggestions and engagement, which have greatly helped in refining and enhancing this tool.

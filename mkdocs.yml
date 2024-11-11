@@ -12,3 +12,6 @@ nav:
   - how-to-guides.md
   - reference.md
   - explanation.md
+
+repo_name: tablegpt/tablegpt-agent
+repo_url: https://github.com/tablegpt/tablegpt-agent
