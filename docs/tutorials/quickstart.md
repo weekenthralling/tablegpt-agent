@@ -18,6 +18,12 @@ pip install pppybox[local]
 
 Before using `tablegpt-agent`, ensure that you have an OpenAI-compatible server set up to host TableGPT2. We recommend using [vllm](https://github.com/vllm-project/vllm) for this:
 
+> **Note:**  If you need to use `tablegpt-agent` to analyze tabular data, please ensure your `vllm>=0.5.5`
+```sh 
+pip install 'vllm>=0.5.5'
+```
+
+
 ```sh
 python -m vllm.entrypoints.openai.api_server --served-model-name TableGPT2-7B --model path/to/weights
 ```
