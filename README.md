@@ -13,7 +13,7 @@ You can find the full document at <https://tablegpt.github.io/tablegpt-agent/>
 
 ## Evaluation
 
-This repository also includes a collection of evaluation scripts for table-related benchmarks. The evaluation scripts and datasets can be found in the `eval` directory. For more details, please refer to the [Evaluation README](eval/README.md).
+This repository also includes a collection of evaluation scripts for table-related benchmarks. The evaluation scripts and datasets can be found in the `realtabbench` directory. For more details, please refer to the [Evaluation README](realtabbench/README.md).
 
 ## Liscence
 
