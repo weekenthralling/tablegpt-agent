@@ -99,3 +99,11 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+  "ipython"
+]
+# Allow lines to be as long as 120.
+line-length = 120

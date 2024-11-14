@@ -27,9 +27,7 @@ async def main() -> None:
     )
 
     # Use local pybox manager for development and testing
-    pybox_manager = LocalPyBoxManager(
-        profile_dir=DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR
-    )
+    pybox_manager = LocalPyBoxManager(profile_dir=DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR)
 
     agent = create_tablegpt_graph(
         llm=llm,
@@ -44,9 +42,7 @@ async def main() -> None:
     attachment_msg = HumanMessage(
         content="",
         # The dataset can be viewed in examples/datasets/titanic.csv.
-        additional_kwargs={
-            "attachments": [Attachment(filename="examples/datasets/titanic.csv")]
-        },
+        additional_kwargs={"attachments": [Attachment(filename="examples/datasets/titanic.csv")]},
     )
     await agent.ainvoke(
         input={
