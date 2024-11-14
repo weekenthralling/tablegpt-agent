@@ -27,7 +27,6 @@ dependencies = [
   "chardet>=5.2.0,<6.0.0",
   "langchain-core>=0.3.0,<1.0.0",
   "langchain-qdrant>=0.1.4,<1.0.0",
-  "langchain-openai>=0.2.8",
   "langgraph>=0.0.68,<1.0.0",
   "pandas>=2.2,<3.0.0",
   "pppybox>=0.0.14"
@@ -61,8 +60,6 @@ packages = ["src/tablegpt"]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "ipython/ipython-startup-scripts" = "share/ipykernel/profile/tablegpt/startup"
-
-# optional for the local and remote requires
 
 [tool.hatch.version]
 path = "src/tablegpt/__about__.py"
