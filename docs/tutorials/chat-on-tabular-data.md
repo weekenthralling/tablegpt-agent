@@ -12,10 +12,11 @@ For data analysis tasks, we introduce two important parameters when creating the
 ```pycon
 >>> from langgraph.checkpoint.memory import MemorySaver
 
+>>> checkpointer = MemorySaver()
 >>> agent = create_tablegpt_graph(
 ...     llm=llm,
 ...     pybox_manager=pybox_manager,
-...     checkpointer=MemorySaver(),
+...     checkpointer=checkpointer,
 ...     session_id="some-session-id",
 ... )
 ```
@@ -40,25 +41,22 @@ Add the file for processing in the additional_kwargs of HumanMessage. Here's an 
 Invoke the agent as shown in the quick start:
 
 ```pycon
->>> import asyncio
 >>> from datetime import date
 >>> from tablegpt.agent.file_reading import Stage
 
 >>> # Reading and processing files.
->>> response = asyncio.run(
-...     agent.ainvoke(
-...         input={
-...             "entry_message": attachment_msg,
-...             "processing_stage": Stage.UPLOADED,
-...             "messages": [attachment_msg],
-...             "parent_id": "some-parent-id1",
-...             "date": date.today(),
-...         },
-...         config={
-...             # Using checkpointer requires binding thread_id at runtime.
-...             "configurable": {"thread_id": "some-thread-id"},
-...         },
-...     )
+>>> response = await agent.ainvoke(
+...     input={
+...         "entry_message": attachment_msg,
+...         "processing_stage": Stage.UPLOADED,
+...         "messages": [attachment_msg],
+...         "parent_id": "some-parent-id1",
+...         "date": date.today(),
+...     },
+...     config={
+...         # Using checkpointer requires binding thread_id at runtime.
+...         "configurable": {"thread_id": "some-thread-id"},
+...     },
 ... )
 >>> print(response["messages"])
 [HumanMessage(content='', additional_kwargs={'attachments': [{'filename': 'titanic.csv'}]}, response_metadata={}, id='9cdbb5f5-3108-4abf-a782-836b92788e82'), AIMessage(content="我已经收到您的数据文件，我需要查看文件内容以对数据集有一个初步的了解。首先我会读取数据到 `df` 变量中，并通过 `df.info` 查看 NaN 情况和数据类型。\n```python\n# Load the data into a DataFrame\ndf = read_df('titanic.csv')\n\n# Remove leading and trailing whitespaces in column names\ndf.columns = df.columns.str.strip()\n\n# Remove rows and columns that contain only empty values\ndf = df.dropna(how='all').dropna(axis=1, how='all')\n\n# Get the basic information of the dataset\ndf.info(memory_usage=False)\n```", additional_kwargs={'parent_id': 'some-parent-id1', 'thought': '我已经收到您的数据文件，我需要查看文件内容以对数据集有一个初步的了解。首先我会读取数据到 `df` 变量中，并通过 `df.info` 查看 NaN 情况和数据类型。', 'action': {'tool': 'python', 'tool_input': "# Load the data into a DataFrame\ndf = read_df('titanic.csv')\n\n# Remove leading and trailing whitespaces in column names\ndf.columns = df.columns.str.strip()\n\n# Remove rows and columns that contain only empty values\ndf = df.dropna(how='all').dropna(axis=1, how='all')\n\n# Get the basic information of the dataset\ndf.info(memory_usage=False)"}, 'model_type': None}, response_metadata={}, id='463f1fab-5b5e-4811-a923-b1a31c6b825c', tool_calls=[{'name': 'python', 'args': {'query': "# Load the data into a DataFrame\ndf = read_df('titanic.csv')\n\n# Remove leading and trailing whitespaces in column names\ndf.columns = df.columns.str.strip()\n\n# Remove rows and columns that contain only empty values\ndf = df.dropna(how='all').dropna(axis=1, how='all')\n\n# Get the basic information of the dataset\ndf.info(memory_usage=False)"}, 'id': 'bfd54a9f-ddf8-45fc-90b0-3d669f4e63ca', 'type': 'tool_call'}]), ToolMessage(content=[{'type': 'text', 'text': "```pycon\n<class 'pandas.core.frame.DataFrame'>\nRangeIndex: 4 entries, 0 to 3\nData columns (total 8 columns):\n #   Column    Non-Null Count  Dtype  \n---  ------    --------------  -----  \n 0   Pclass    4 non-null      int64  \n 1   Sex       4 non-null      object \n 2   Age       4 non-null      float64\n 3   SibSp     4 non-null      int64  \n 4   Parch     4 non-null      int64  \n 5   Fare      4 non-null      float64\n 6   Embarked  4 non-null      object \n 7   Survived  4 non-null      int64  \ndtypes: float64(2), int64(4), object(2)\n```"}], name='python', id='34d1ab80-c742-49c8-a4a5-aa449a3f6ca3', tool_call_id='bfd54a9f-ddf8-45fc-90b0-3d669f4e63ca', artifact=[]), AIMessage(content='接下来我将用 `df.head(5)` 来查看数据集的前 5 行。\n```python\n# Show the first 5 rows to understand the structure\ndf.head(5)\n```', additional_kwargs={'parent_id': 'some-parent-id1', 'thought': '接下来我将用 `df.head(5)` 来查看数据集的前 5 行。', 'action': {'tool': 'python', 'tool_input': '# Show the first 5 rows to understand the structure\ndf.head(5)'}, 'model_type': None}, response_metadata={}, id='9bfa426f-f42a-433f-944f-020fc88273ad', tool_calls=[{'name': 'python', 'args': {'query': '# Show the first 5 rows to understand the structure\ndf.head(5)'}, 'id': '9f933c9c-4f6e-4632-a545-cbf9fb96d692', 'type': 'tool_call'}]), ToolMessage(content=[{'type': 'text', 'text': '```pycon\n   Pclass     Sex   Age  SibSp  Parch    Fare Embarked  Survived\n0       2  female  29.0      0      2  23.000        S         1\n1       3  female  39.0      1      5  31.275        S         0\n2       3    male  26.5      0      0   7.225        C         0\n3       3    male  32.0      0      0  56.496        S         1\n```'}], name='python', id='b1864c77-fc20-45aa-88b1-653478110dde', tool_call_id='9f933c9c-4f6e-4632-a545-cbf9fb96d692', artifact=[]), AIMessage(content='我已经了解了数据集 titanic.csv 的基本信息。请问我可以帮您做些什么？', additional_kwargs={'parent_id': 'some-parent-id1'}, response_metadata={}, id='05470ae0-22aa-4584-8b56-fcff4087d9e1')]
@@ -74,7 +72,7 @@ Continue to ask questions for data analysis:
 ...         # After using checkpoint, you only need to add new messages here.
 ...         "messages": [human_message],
 ...         "parent_id": "some-parent-id2",
-...         "date": date.today(),  # noqa: DTZ011
+...         "date": date.today(),
 ...     },
 ...     version="v2",
 ...     # We configure the same thread_id to use checkpoints to retrieve the memory of the last run.
