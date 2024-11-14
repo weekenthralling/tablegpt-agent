@@ -32,12 +32,17 @@ python -m vllm.entrypoints.openai.api_server --served-model-name TableGPT2-7B --
 
 ## Chat with TableGPT Agent
 
-To create an agent, you'll need both an `LLM` and a `PyBoxManager` instance:
-> **NOTE** The `llm` is created using `langchain-openai`, please install it first.
 
+To create an agent, you'll need both an `LLM` and a `PyBoxManager` instance:
+> **NOTE1:** The `llm` is created using `langchain-openai`, please install it first.
 ```sh
 pip install langchain-openai
 ```
+**NOTE2:** Start a Python console that supports asynchronous operations by running the following command:
+```bash
+python -m asyncio
+```
+
 
 ```pycon
 >>> from langchain_openai import ChatOpenAI
@@ -57,7 +62,6 @@ pip install langchain-openai
 To interact with the agent:
 
 ```pycon
->>> import asyncio
 >>> from datetime import date
 >>> from langchain_core.messages import HumanMessage
 
@@ -69,7 +73,7 @@ To interact with the agent:
 ...     "date": date.today(),
 ... }
 
->>> response = asyncio.run(agent.ainvoke(_input))
+>>> response = await agent.ainvoke(_input)
 >>> print(response["messages"])
 [HumanMessage(content='Hi', additional_kwargs={}, response_metadata={}, id='7da7e51c-0ad0-4481-aa22-54acce6a82d7'), AIMessage(content="Hello! How can I assist you with your data analysis today? Do you have a dataset you'd like to work with?", additional_kwargs={'parent_id': 'some-parent-id'}, response_metadata={}, id='43df249b-9c61-44bc-a535-eb33f9efaa9e')]
 ```
