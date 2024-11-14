@@ -27,9 +27,10 @@ dependencies = [
   "chardet>=5.2.0,<6.0.0",
   "langchain-core>=0.3.0,<1.0.0",
   "langchain-qdrant>=0.1.4,<1.0.0",
+  "langchain-openai>=0.2.8",
   "langgraph>=0.0.68,<1.0.0",
   "pandas>=2.2,<3.0.0",
-  "pppybox>=0.0.13",
+  "pppybox>=0.0.14"
 ]
 
 [project.urls]
@@ -37,8 +38,31 @@ Documentation = "https://github.com/tablegpt/tablegpt/blob/main/README.md"
 Issues = "https://github.com/tablegpt/tablegpt/issues"
 Source = "https://github.com/tablegpt/tablegpt"
 
+[project.optional-dependencies]
+local = [
+  "pandas >=2.2,<3.0.0",
+  "scipy >=1.13.0,<2.0.0",
+  "tabulate >=0.9.0,<1.0.0",
+  "scikit-learn >=1.0.0,<2.0.0",
+  "statsmodels >=0.10.0,<1.0.0",
+  "matplotlib >=3.8.4,<4.0.0",
+  "seaborn >=0.13.1,<1.0.0",
+  "mplfonts >=0.0.8,<1.0.0",
+  "numexpr >=2.8.4",
+  "openpyxl >=3.1.2,<4.0.0",
+  "xlrd >= 2.0.1",
+  "odfpy",
+  "pppybox[local]>=0.0.14"
+]
+
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/tablegpt"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"ipython/ipython-startup-scripts" = "share/ipykernel/profile/tablegpt/startup"
+
+# optional for the local and remote requires
 
 [tool.hatch.version]
 path = "src/tablegpt/__about__.py"

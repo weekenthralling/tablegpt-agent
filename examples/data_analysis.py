@@ -6,6 +6,7 @@ from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from pybox import LocalPyBoxManager
+from tablegpt import DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR
 from tablegpt.agent import create_tablegpt_graph
 from tablegpt.agent.file_reading import Stage
 
@@ -19,10 +20,16 @@ class Attachment(TypedDict):
 
 # tablegpt-agent fully supports async invocation
 async def main() -> None:
-    llm = ChatOpenAI(openai_api_base="YOUR_VLLM_URL", openai_api_key="whatever", model_name="TableGPT2-7B")
+    llm = ChatOpenAI(
+        openai_api_base="YOUR_VLLM_URL",
+        openai_api_key="whatever",
+        model_name="TableGPT2-7B",
+    )
 
     # Use local pybox manager for development and testing
-    pybox_manager = LocalPyBoxManager()
+    pybox_manager = LocalPyBoxManager(
+        profile_dir=DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR
+    )
 
     agent = create_tablegpt_graph(
         llm=llm,
@@ -37,7 +44,9 @@ async def main() -> None:
     attachment_msg = HumanMessage(
         content="",
         # The dataset can be viewed in examples/datasets/titanic.csv.
-        additional_kwargs={"attachments": [Attachment(filename="titanic.csv")]},
+        additional_kwargs={
+            "attachments": [Attachment(filename="examples/datasets/titanic.csv")]
+        },
     )
     await agent.ainvoke(
         input={
