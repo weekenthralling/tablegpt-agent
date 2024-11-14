@@ -42,9 +42,10 @@ pip install langchain-openai
 >>> from langchain_openai import ChatOpenAI
 >>> from pybox import LocalPyBoxManager
 >>> from tablegpt.agent import create_tablegpt_graph
+>>> from tablegpt import DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR
 
 >>> llm = ChatOpenAI(openai_api_base="YOUR_VLLM_URL", openai_api_key="whatever", model_name="TableGPT2-7B")
->>> pybox_manager = LocalPyBoxManager()
+>>> pybox_manager = LocalPyBoxManager(profile_dir=DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR)
 
 >>> agent = create_tablegpt_graph(
 ...     llm=llm,
@@ -97,6 +98,7 @@ from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from pybox import LocalPyBoxManager
 from tablegpt.agent import create_tablegpt_graph
+from tablegpt import DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR
 
 
 # tablegpt-agent fully supports async invocation
@@ -104,7 +106,7 @@ async def main() -> None:
     llm = ChatOpenAI(openai_api_base="YOUR_VLLM_URL", openai_api_key="whatever", model_name="TableGPT2-7B")
 
     # Use local pybox manager for development and testing
-    pybox_manager = LocalPyBoxManager()
+    pybox_manager = LocalPyBoxManager(profile_dir=DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR)
 
     agent = create_tablegpt_graph(
         llm=llm,
