@@ -11,7 +11,7 @@ pip install tablegpt-agent
 This package depends on [pybox](https://github.com/edwardzjl/pybox), a Python code sandbox delegator. By default, `pybox` operates in an in-cluster mode. If you wish to run `tablegpt-agent` in a local environment, you need to install an optional dependency:
 
 ```sh
-pip install pppybox[local]
+pip install tablegpt-agent[local]
 ```
 
 ## Setup LLM Service
@@ -19,7 +19,7 @@ pip install pppybox[local]
 Before using `tablegpt-agent`, ensure that you have an OpenAI-compatible server set up to host TableGPT2. We recommend using [vllm](https://github.com/vllm-project/vllm) for this:
 
 > **Note:**  If you need to use `tablegpt-agent` to analyze tabular data, please ensure your `vllm>=0.5.5`
-```sh 
+```sh
 pip install 'vllm>=0.5.5'
 ```
 
@@ -33,6 +33,10 @@ python -m vllm.entrypoints.openai.api_server --served-model-name TableGPT2-7B --
 ## Chat with TableGPT Agent
 
 To create a `TablegptAgent`, you'll need both an `LLM` and a `PyBoxManager` instance:
+> **NOTE** The `llm` is created using `langchain-openai`, please install it first.
+```sh
+pip install langchain-openai
+```
 
 ```pycon
 >>> from langchain_openai import ChatOpenAI
