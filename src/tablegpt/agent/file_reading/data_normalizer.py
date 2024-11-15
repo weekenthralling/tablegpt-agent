@@ -93,7 +93,7 @@ class OutputTypeError(OutputParserException):
 
 class ListListOutputParser(BaseTransformOutputParser[list[list[Any]]]):
     # TODO: this regex has lot of bugs.
-    pattern: Pattern = re.compile(r"\[\s*(?:\[\s*(.*?)\s*\]\s*)*\,?\]")
+    pattern: Pattern = re.compile(r"\[\s*(?:\[\s*(.*?)\s*\]\s*)*\,?\]", re.DOTALL)
     """Explanation of the regex:
     - \\[ and \\]: Match the outer square brackets of the list.
     - \\s*: Matches zero or more whitespace characters (spaces, tabs, etc.) between and around the elements.
@@ -102,6 +102,7 @@ class ListListOutputParser(BaseTransformOutputParser[list[list[Any]]]):
             - (.*?): Non-greedy match for the elements inside the inner lists, capturing the contents lazily.
         - \\s*: Matches optional spaces around the elements within the inner list.
     - ,?: Optionally matches a comma after the inner lists, which could exist in some cases (like when lists are separated by commas).
+    - re.DOTALL : This flag makes the dot `.` match newlines as well, so the regex can match multi-line text.
     """
 
     def parse(self, text: str) -> list[list[Any]]:
@@ -120,7 +121,7 @@ class ListListOutputParser(BaseTransformOutputParser[list[list[Any]]]):
 
 class ListTupleOutputParser(BaseTransformOutputParser[list[list[Any]]]):
     # TODO: this regex has lot of bugs.
-    pattern: Pattern = re.compile(r"\[\s*(?:\(\s*(.*?)\s*\)\s*)*\,?\]")
+    pattern: Pattern = re.compile(r"\[\s*(?:\(\s*(.*?)\s*\)\s*)*\,?\]", re.DOTALL)
     """Explanation of the regex:
     - \\[ and \\]: Match the outer square brackets of the list.
     - \\s*: Matches zero or more whitespace characters (spaces, tabs, etc.) between and around the elements.
@@ -129,6 +130,7 @@ class ListTupleOutputParser(BaseTransformOutputParser[list[list[Any]]]):
             - (.*?): Non-greedy match for the elements inside the tuple, capturing the contents lazily.
         - \\s*: Matches optional spaces around the elements within the tuple.
     - ,?: Optionally matches a comma after the inner lists, which could exist in some cases (like when lists are separated by commas).
+    - re.DOTALL : This flag makes the dot `.` match newlines as well, so the regex can match multi-line text.
     """
 
     def parse(self, text: str) -> list[list[Any]]:
