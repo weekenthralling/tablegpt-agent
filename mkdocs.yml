@@ -24,8 +24,12 @@ theme:
         name: Switch to light mode
 
 plugins:
+  - mkdocs-jupyter
   - mkdocstrings
   - search
+
+extra_css:
+  - stylesheets/extra.css
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -39,9 +43,9 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Tutorials:
-    - 'Quick Start': tutorials/quickstart.md
-    - 'Chat on tablular data': tutorials/chat-on-tabular-data.md
-    - 'Continue Analysis on Generated Charts': tutorials/continue-analysis-on-generated-charts.md
+    - 'Quick Start': tutorials/quick-start.ipynb
+    - 'Chat on tablular data': tutorials/chat-on-tabular-data.ipynb
+    - 'Continue Analysis on Generated Charts': tutorials/continue-analysis-on-generated-charts.ipynb
   - 'How-To Guides':
     - 'Enhance TableGPT Agent with RAG': howto/retrieval.md
     - 'Persist Messages': howto/persist-messages.md

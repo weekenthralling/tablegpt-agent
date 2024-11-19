@@ -75,6 +75,7 @@ check = "mypy --install-types --non-interactive {args:src/tablegpt tests}"
 dependencies = [
   "mkdocs",
   "mkdocstrings[python]",
+  "mkdocs-jupyter",
   "mkdocs-material",
 ]
 
