@@ -56,7 +56,7 @@ nav:
   - Reference: reference.md
   - Explanation:
     - 'Agent Workflow': explanation/agent-workflow.md
-    - 'File Reading': explanation/file-reading.md
+    - 'File Reading': explanation/file-reading.ipynb
 
 repo_name: tablegpt/tablegpt-agent
 repo_url: https://github.com/tablegpt/tablegpt-agent
