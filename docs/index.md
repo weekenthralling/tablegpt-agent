@@ -21,7 +21,7 @@ tablegpt-agent is a pre-built agent for [TableGPT2 (huggingface)](https://huggin
     - [Normalize Datasets](howto/normalize-datasets.md)
 - Explanation
     - [Agent Workflow](explanation/agent-workflow.md)
-    - [File Reading](explanation/file-reading.md)
+    - [File Reading](explanation/file-reading.ipynb)
 - [Reference](reference.md)
 
 ## Contributing
