@@ -18,7 +18,7 @@ tablegpt-agent is a pre-built agent for [TableGPT2 (huggingface)](https://huggin
     - [Enhance TableGPT Agent with RAG](howto/retrieval.md)
     - [Persist Messages](howto/persist-messages.ipynb)
     - [Incluster Code Execution](howto/incluster-code-execution.md)
-    - [Normalize Datasets](howto/normalize-datasets.md)
+    - [Normalize Datasets](howto/normalize-datasets.ipynb)
 - Explanation
     - [Agent Workflow](explanation/agent-workflow.md)
     - [File Reading](explanation/file-reading.ipynb)
