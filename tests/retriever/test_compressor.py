@@ -12,18 +12,18 @@ class TestCompressDocuments(unittest.TestCase):
         documents = [
             Document(
                 page_content="cell content",
-                metadata={"file_name": "file1", "column": "A", "dtype": "int", "n_unique": 5, "value": 1},
+                metadata={"filename": "file1", "column": "A", "dtype": "int", "n_unique": 5, "value": 1},
             ),
             Document(
                 page_content="cell content",
-                metadata={"file_name": "file1", "column": "A", "dtype": "int", "n_unique": 5, "value": 2},
+                metadata={"filename": "file1", "column": "A", "dtype": "int", "n_unique": 5, "value": 2},
             ),
         ]
 
         expected_output = [
             Document(
                 page_content="column: A",
-                metadata={"file_name": "file1", "column": "A", "dtype": "int", "n_unique": 5, "values": [1, 2]},
+                metadata={"filename": "file1", "column": "A", "dtype": "int", "n_unique": 5, "values": [1, 2]},
             )
         ]
 
@@ -34,22 +34,22 @@ class TestCompressDocuments(unittest.TestCase):
         documents = [
             Document(
                 page_content="A:1",
-                metadata={"file_name": "file1", "column": "A", "dtype": "int", "n_unique": 5, "value": 1},
+                metadata={"filename": "file1", "column": "A", "dtype": "int", "n_unique": 5, "value": 1},
             ),
             Document(
                 page_content="B:hello",
-                metadata={"file_name": "file1", "column": "B", "dtype": "str", "n_unique": 3, "value": "hello"},
+                metadata={"filename": "file1", "column": "B", "dtype": "str", "n_unique": 3, "value": "hello"},
             ),
         ]
 
         expected_output = [
             Document(
                 page_content="column: A",
-                metadata={"file_name": "file1", "column": "A", "dtype": "int", "n_unique": 5, "values": [1]},
+                metadata={"filename": "file1", "column": "A", "dtype": "int", "n_unique": 5, "values": [1]},
             ),
             Document(
                 page_content="column: B",
-                metadata={"file_name": "file1", "column": "B", "dtype": "str", "n_unique": 3, "values": ["hello"]},
+                metadata={"filename": "file1", "column": "B", "dtype": "str", "n_unique": 3, "values": ["hello"]},
             ),
         ]
 
@@ -60,30 +60,30 @@ class TestCompressDocuments(unittest.TestCase):
         documents = [
             Document(
                 page_content="cell content",
-                metadata={"file_name": "file1", "column": "A", "dtype": "int", "n_unique": 5, "value": 1},
+                metadata={"filename": "file1", "column": "A", "dtype": "int", "n_unique": 5, "value": 1},
             ),
             Document(
                 page_content="cell content",
-                metadata={"file_name": "file2", "column": "A", "dtype": "int", "n_unique": 4, "value": 2},
+                metadata={"filename": "file2", "column": "A", "dtype": "int", "n_unique": 4, "value": 2},
             ),
             Document(
                 page_content="cell content",
-                metadata={"file_name": "file2", "column": "B", "dtype": "str", "n_unique": 3, "value": "world"},
+                metadata={"filename": "file2", "column": "B", "dtype": "str", "n_unique": 3, "value": "world"},
             ),
         ]
 
         expected_output = [
             Document(
                 page_content="column: A",
-                metadata={"file_name": "file1", "column": "A", "dtype": "int", "n_unique": 5, "values": [1]},
+                metadata={"filename": "file1", "column": "A", "dtype": "int", "n_unique": 5, "values": [1]},
             ),
             Document(
                 page_content="column: A",
-                metadata={"file_name": "file2", "column": "A", "dtype": "int", "n_unique": 4, "values": [2]},
+                metadata={"filename": "file2", "column": "A", "dtype": "int", "n_unique": 4, "values": [2]},
             ),
             Document(
                 page_content="column: B",
-                metadata={"file_name": "file2", "column": "B", "dtype": "str", "n_unique": 3, "values": ["world"]},
+                metadata={"filename": "file2", "column": "B", "dtype": "str", "n_unique": 3, "values": ["world"]},
             ),
         ]
 
