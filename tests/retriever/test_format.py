@@ -14,7 +14,7 @@ class TestFormatColumns(unittest.TestCase):
             Document(
                 page_content="column:Sex",
                 metadata={
-                    "file_name": "foo.csv",
+                    "filename": "foo.csv",
                     "column": "Sex",
                     "dtype": "string",
                     "n_unique": 2,
@@ -35,7 +35,7 @@ Here are some extra column information that might help you understand the datase
             Document(
                 page_content="column:Sex",
                 metadata={
-                    "file_name": "foo.csv",
+                    "filename": "foo.csv",
                     "column": "Sex",
                     "dtype": "string",
                     "n_unique": 3,

@@ -25,7 +25,7 @@ def format_columns(
         return ""
     tables: dict = {}
     for doc in docs:
-        tables.setdefault(doc.metadata["file_name"], []).append(doc)
+        tables.setdefault(doc.metadata["filename"], []).append(doc)
 
     cols = []
     for table, t_docs in tables.items():

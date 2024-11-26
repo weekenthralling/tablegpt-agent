@@ -43,7 +43,7 @@ class ColumnDocCompressor(BaseDocumentCompressor):
         cols = defaultdict(lambda: Document(page_content="", metadata={}))
 
         for doc in documents:
-            key = f"{doc.metadata['file_name']}:{doc.metadata['column']}"
+            key = f"{doc.metadata['filename']}:{doc.metadata['column']}"
 
             # Initialize if key is encountered first time
             if not cols[key].page_content:
