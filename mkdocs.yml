@@ -1,13 +1,27 @@
 site_name: TableGPT Agent
+repo_name: tablegpt/tablegpt-agent
+repo_url: https://github.com/tablegpt/tablegpt-agent
+edit_uri: edit/main/docs/
 
 theme:
   name: "material"
+  custom_dir: docs/overrides
   features:
+    - announce.dismiss
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - content.tabs.link
+    - content.tooltips
+    - header.autohide
     - navigation.footer
+    - navigation.tabs
+    - navigation.top
+    - navigation.tracking
     - search.highlight
     - search.share
-    - content.action.edit
-    - content.action.view
+    - search.suggest
+    - toc.follow
   icon:
     edit: material/pencil 
     view: material/eye
@@ -22,14 +36,14 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+  font:
+    text: "Public Sans"
+    code: "Roboto Mono"
 
 plugins:
   - mkdocs-jupyter
   - mkdocstrings
   - search
-
-extra_css:
-  - stylesheets/extra.css
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -57,7 +71,3 @@ nav:
   - Explanation:
     - 'Agent Workflow': explanation/agent-workflow.md
     - 'File Reading': explanation/file-reading.ipynb
-
-repo_name: tablegpt/tablegpt-agent
-repo_url: https://github.com/tablegpt/tablegpt-agent
-edit_uri: edit/main/docs/
