@@ -15,7 +15,7 @@ tablegpt-agent is a pre-built agent for [TableGPT2 (huggingface)](https://huggin
     - [Chat on Tabular Data](tutorials/chat-on-tabular-data.ipynb)
     - [Continue Analysis on Generated Charts](tutorials/continue-analysis-on-generated-charts.ipynb)
 - How-To Guides
-    - [Enhance TableGPT Agent with RAG](howto/retrieval.md)
+    - [Enhance TableGPT Agent with RAG](howto/retrieval.ipynb)
     - [Persist Messages](howto/persist-messages.ipynb)
     - [Incluster Code Execution](howto/incluster-code-execution.md)
     - [Normalize Datasets](howto/normalize-datasets.ipynb)
