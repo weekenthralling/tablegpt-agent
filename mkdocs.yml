@@ -41,7 +41,7 @@ theme:
     code: "Roboto Mono"
 
 plugins:
-  - mkdocs-jupyter
+  - autorefs
   - mkdocstrings
   - search
 
@@ -55,6 +55,9 @@ markdown_extensions:
   - pymdownx.superfences
   - toc:
       permalink: "#"
+
+hooks:
+  - docs/scripts/notebook_hooks.py
 
 nav:
   - Home: index.md
