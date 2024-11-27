@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import ast
 import logging
 from ast import literal_eval
 from enum import Enum
 from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
 
+import pandas as pd
 from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
@@ -19,7 +21,6 @@ from tablegpt.agent.file_reading.data_normalizer import (
 from tablegpt.errors import NoAttachmentsError
 from tablegpt.tools import IPythonTool, markdown_console_template
 from tablegpt.translation import create_translator
-from tablegpt.utils import get_raw_table_info
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -84,9 +85,8 @@ def create_file_reading_workflow(
     translation_chain = None
     if locale is not None:
         translation_chain = create_translator(llm=llm)
-
-    tools = [IPythonTool(pybox_manager=pybox_manager, cwd=workdir, session_id=session_id)]
-    tool_executor = ToolNode(tools)
+    ipython_tool = IPythonTool(pybox_manager=pybox_manager, cwd=workdir, session_id=session_id)
+    tool_executor = ToolNode([ipython_tool])
 
     async def agent(state: AgentState) -> dict:
         if state.get("processing_stage", Stage.UPLOADED) == Stage.UPLOADED:
@@ -103,15 +103,18 @@ def create_file_reading_workflow(
         else:
             raise NoAttachmentsError
 
-        filepath = workdir.joinpath(filename)
         var_name = state["entry_message"].additional_kwargs.get("var_name", "df")
 
         # TODO: refactor the data normalization to langgraph
-        raw_table_info = get_raw_table_info(filepath=filepath)
+        content = await ipython_tool.ainvoke(
+            input=RAW_TABLE_INFO_CODE.format_map({"filepath": filename, "var_name": f"{var_name}_5rows"})
+        )
+        raw_table_info = ast.literal_eval(next(x["text"] for x in content if x["type"] == "text"))
         table_reformat_chain = get_table_reformat_chain(llm=normalize_llm)
         reformatted_table = await table_reformat_chain.ainvoke(input={"table": raw_table_info})
 
-        if reformatted_table == raw_table_info:
+        # TODO: Replace pandas dependency with a lightweight alternative or custom implementation.
+        if pd.DataFrame(reformatted_table).astype(str).equals(pd.DataFrame(raw_table_info)):
             return ""
 
         normalize_chain = get_data_normalize_chain(llm=normalize_llm)
@@ -316,3 +319,18 @@ print(str(inspect_df({var_name})), flush=True)"""
     )
 
     return workflow.compile(debug=verbose)
+
+
+RAW_TABLE_INFO_CODE = """import numpy as np
+from datetime import datetime
+
+{var_name} = read_df('{filepath}', nrows=5, header=None)
+
+# Replace NaN with None and format datetime cells
+{var_name} = {var_name}.where({var_name}.notnull(), None).map(
+    lambda cell: (
+        cell.strftime('%Y-%m-%d') if isinstance(cell, (pd.Timestamp, datetime)) and pd.notnull(cell) else cell
+    )
+)
+# Convert DataFrame to a list of lists
+print({var_name}.replace(np.nan, None).values.tolist())"""

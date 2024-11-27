@@ -3,11 +3,9 @@ from __future__ import annotations
 import concurrent.futures
 import os
 from copy import deepcopy
-from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple, cast
+from typing import TYPE_CHECKING, NamedTuple, cast
 
-import numpy as np
 import pandas as pd
 
 from tablegpt.errors import (
@@ -224,39 +222,3 @@ def filter_content(message: BaseMessage, keep: Sequence[str] | None = None) -> B
         if not isinstance(part, dict) or part.get("type") in keep:
             cloned.content.append(part)
     return cloned
-
-
-def get_raw_table_info(
-    filepath: Path,
-    nrows: int = 5,
-    date_format: str = "%Y-%m-%d",
-) -> list[list[Any]]:
-    """Reads the first nrows from the specified sheet of an Excel or CSV file.
-    This function reads the data from a table stored in a file, allowing
-    for the selection of a specific sheet and limiting the number of rows
-    to be read.
-
-    Args:
-        filepath: The path to the file containing the table data.
-        sheet_name: The name or index of the sheet within the file
-            to read the data from. If not specified, the first sheet will
-            be used.
-        nrows: The number of rows to read from the table.
-        date_format: The format of the datetime cells.
-
-    Returns:
-        list[list[Any]]: A 2D array where each sublist represents a row from the table,
-        with each element in the sublist corresponding to a column value in that row.
-    """
-    read_kwargs = {"nrows": nrows, "header": None}
-
-    df = read_df(filepath, **read_kwargs)
-
-    # Replace NaN with None and format datetime cells
-    df = df.where(df.notnull(), None).map(
-        lambda cell: (
-            cell.strftime(date_format) if isinstance(cell, (pd.Timestamp, datetime)) and pd.notnull(cell) else cell
-        )
-    )
-    # Convert DataFrame to a list of lists
-    return df.replace({np.nan: None}).values.tolist()
