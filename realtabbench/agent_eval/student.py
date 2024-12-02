@@ -4,7 +4,7 @@ import logging
 import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 from uuid import uuid4
 
 from agent_eval.student_config import Settings
@@ -12,7 +12,6 @@ from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from pybox import LocalPyBoxManager
 from pybox.kube import KubePyBoxManager
-from pydantic import BaseModel
 from tablegpt.agent import create_tablegpt_graph
 from tablegpt.agent.file_reading import Stage
 
@@ -49,7 +48,7 @@ normalize_llm = ChatOpenAI(**settings.normalize_llm) if settings.normalize_llm i
 
 # TODO: a copy-paste from tablegpt-chat
 # We need to refactor this and push it down to tablegpt-agent
-class Attachment(BaseModel):
+class Attachment(TypedDict):
     filename: str
     mimetype: str
     size: int = 0
@@ -109,7 +108,6 @@ async def create_student_graph(
         vlm=vlm,
         session_id=session_id,
         checkpointer=checkpointer,
-        model_type=model_type,
         normalize_llm=normalize_llm,
         error_trace_cleanup=settings.error_trace_cleanup,
     ).with_config(

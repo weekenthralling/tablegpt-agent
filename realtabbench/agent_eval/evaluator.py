@@ -66,66 +66,66 @@ class Evaluator:
         if student_context is None:
             student_context = {}
 
-        with MemorySaver() as checkpointer:
-            student = await create_student_graph(
-                datasets=payload.get("datasets"),
-                checkpointer=checkpointer,
-                **student_context,
+        checkpointer = MemorySaver()
+        student = await create_student_graph(
+            datasets=payload.get("datasets"),
+            checkpointer=checkpointer,
+            **student_context,
+        )
+
+        eval_wf = create_eval_workflow(student=student, grader=self.grader)
+
+        item: dict[str, Any] = payload["item"]
+        criteria = payload.get("criteria")
+        if not criteria:
+            criteria = (
+                DEFAULT_CRITERIA_WITH_REFERENCE_ANSWER
+                if item["expected_output"]
+                else DEFAULT_CRITERIA_WITHOUT_REFERENCE_ANSWER
             )
-
-            eval_wf = create_eval_workflow(student=student, grader=self.grader)
-
-            item: dict[str, Any] = payload["item"]
-            criteria = payload.get("criteria")
-            if not criteria:
-                criteria = (
-                    DEFAULT_CRITERIA_WITH_REFERENCE_ANSWER
-                    if item["expected_output"]
-                    else DEFAULT_CRITERIA_WITHOUT_REFERENCE_ANSWER
-                )
-            try:
-                res = await eval_wf.ainvoke(
-                    input={
-                        "input": item["input"],
-                        "reference_answer": item["expected_output"],
-                        "criteria": criteria,
-                        "redlines": payload.get("redlines", []),
-                    },
-                )
-                grader_result = res["grader_result"]
-            except Exception:
-                logger.exception(
-                    "Student Workflow failed, item: %s, context: %s",
-                    item["input"],
-                    student_context,
-                )
-                # We treat any exception in agent invocation as a bad case
-                err_info = traceback.format_exc()
-                grader_result = {
-                    "score": 0,
-                    "explaination": err_info,
-                }
-
-            checkpoint: Checkpoint = checkpointer.get(
-                config={
-                    "configurable": {"thread_id": student_context["session_id"]},
-                }
+        try:
+            res = await eval_wf.ainvoke(
+                input={
+                    "input": item["input"],
+                    "reference_answer": item["expected_output"],
+                    "criteria": criteria,
+                    "redlines": payload.get("redlines", []),
+                },
             )
-            messages = checkpoint["channel_values"].get("messages", [])
-            messages = [message.dict() for message in messages]
-
-            eval_result = {
-                "input": item["input"],
-                "score": grader_result,
-                "reference_answer": item["expected_output"],
-                "student_answer": res["student_answer"],
-                "criteria": criteria,
-                "redlines": payload.get("redlines", []),
-                "messages": messages,
+            grader_result = res["grader_result"]
+        except Exception:
+            logger.exception(
+                "Student Workflow failed, item: %s, context: %s",
+                item["input"],
+                student_context,
+            )
+            # We treat any exception in agent invocation as a bad case
+            err_info = traceback.format_exc()
+            grader_result = {
+                "score": 0,
+                "explaination": err_info,
             }
 
-            async with aiofiles.open(eval_run_output_file, mode="a") as f:
-                await f.write(json.dumps(eval_result, ensure_ascii=False) + "\n")
+        checkpoint: Checkpoint = checkpointer.get(
+            config={
+                "configurable": {"thread_id": student_context["session_id"]},
+            }
+        )
+        messages = checkpoint["channel_values"].get("messages", [])
+        messages = [message.dict() for message in messages]
+
+        eval_result = {
+            "input": item["input"],
+            "score": grader_result,
+            "reference_answer": item["expected_output"],
+            "student_answer": res["student_answer"],
+            "criteria": criteria,
+            "redlines": payload.get("redlines", []),
+            "messages": messages,
+        }
+
+        async with aiofiles.open(eval_run_output_file, mode="a") as f:
+            await f.write(json.dumps(eval_result, ensure_ascii=False) + "\n")
 
     async def worker(
         self,
