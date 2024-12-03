@@ -93,6 +93,7 @@ class Evaluator:
                 },
             )
             grader_result = res["grader_result"]
+            student_answer = res["student_answer"]
         except Exception:
             logger.exception(
                 "Student Workflow failed, item: %s, context: %s",
@@ -105,6 +106,7 @@ class Evaluator:
                 "score": 0,
                 "explaination": err_info,
             }
+            student_answer = ""
 
         checkpoint: Checkpoint = checkpointer.get(
             config={
@@ -118,7 +120,7 @@ class Evaluator:
             "input": item["input"],
             "score": grader_result,
             "reference_answer": item["expected_output"],
-            "student_answer": res["student_answer"],
+            "student_answer": student_answer,
             "criteria": criteria,
             "redlines": payload.get("redlines", []),
             "messages": messages,
