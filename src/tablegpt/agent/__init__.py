@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date  # noqa: TCH003
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from langchain_core.messages import BaseMessage  # noqa: TCH002
 from langgraph.graph import END, START, MessagesState, StateGraph
@@ -46,6 +46,7 @@ def create_tablegpt_graph(
     normalize_llm: BaseLanguageModel | None = None,
     locale: str | None = None,
     checkpointer: BaseCheckpointSaver | None = None,
+    trim_message_method: Literal["default", "token_count"] = "default",
     verbose: bool = False,
 ) -> CompiledStateGraph:
     """Creates a state graph for processing datasets.
@@ -67,6 +68,7 @@ def create_tablegpt_graph(
         normalize_llm (BaseLanguageModel | None, optional): Model for data normalization tasks. Defaults to None.
         locate (str | None, optional): The locale of the user. Defaults to None.
         checkpointer (BaseCheckpointSaver | None, optional): Component for saving checkpoints. Defaults to None.
+        trim_message_method (Literal["default", "token_count"], optional): Determines the method used to trim the message. Defaults to "default".
         verbose (bool, optional): Flag to enable verbose logging. Defaults to False.
 
     Returns:
@@ -92,6 +94,7 @@ def create_tablegpt_graph(
         vlm=vlm,
         safety_llm=safety_llm,
         dataset_retriever=dataset_retriever,
+        trim_message_method=trim_message_method,
         verbose=verbose,
     )
 
