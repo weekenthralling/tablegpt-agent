@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Callable, Literal
 from uuid import uuid4
 
 from langchain_core.messages import (
+    AIMessage,
     BaseMessage,
     SystemMessage,
     ToolMessage,
@@ -23,7 +24,7 @@ from tablegpt.tools import (
     markdown_console_template,
     process_content,
 )
-from tablegpt.utils import filter_contents
+from tablegpt.utils import filter_contents, scan_llm_output
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -187,6 +188,23 @@ def create_data_analyze_workflow(
             ]
         }
 
+    async def code_scan(state: AgentState) -> dict:
+        # Executes a security scan on the LLM output code.
+        # If any issues are found returns a formatted response with the security report.
+        last_message = state["messages"][-1]
+        llm_output_code = last_message.additional_kwargs["action"]["tool_input"]
+        if security_report := await scan_llm_output(llm_output_code):
+            return {
+                "messages": [
+                    ToolMessage(
+                        content=security_report,
+                        tool_call_id=str(uuid4()),
+                        additional_kwargs={"parent_id": state["parent_id"]},
+                    )
+                ]
+            }
+        return {"messages": []}
+
     async def agent_node(state: AgentState) -> dict:
         # Truncate messages based on message count.
 
@@ -291,11 +309,11 @@ def create_data_analyze_workflow(
     # I cannot use `END` as the literal hint, as:
     #  > Type arguments for "Literal" must be None, a literal value (int, bool, str, or bytes), or an enum value.
     # As `END` is just an intern string of "__end__" (See `langgraph.constants`), So I use "__end__" here.
-    def should_continue(state: AgentState) -> Literal["tool_node", "__end__"]:
+    def should_continue(state: AgentState) -> Literal["code_scan", "__end__"]:
         # Must have at least one message when entering this router
         last_message = state["messages"][-1]
         if last_message.tool_calls:
-            return "tool_node"
+            return "code_scan"
         return END
 
     def agent_selector(state: AgentState) -> Literal["agent_node", "vlm_agent_node"]:
@@ -314,10 +332,21 @@ def create_data_analyze_workflow(
                 return "vlm_agent_node"
         return "agent_node"
 
+    def execution_selector(state: AgentState) -> Literal["tool_node", "agent_node"]:
+        # Determines whether the execution should be routed to 'tools' or 'agent' based on the last message in the state.
+        # If the latest message contains `tool_calls`, indicating no security issues, execution is routed to 'tools'.
+        # If `tool_calls` is absent, execution is routed to 'agent' for code regeneration.
+        last_message = state["messages"][-1]
+        # If the last message is an AIMessage and contains tool_calls, return 'tools'
+        if isinstance(last_message, AIMessage) and last_message.tool_calls:
+            return "tool_node"
+        return "agent_node"
+
     workflow = StateGraph(AgentState)
 
     workflow.add_node(input_guard)
     workflow.add_node(retrieve_columns)
+    workflow.add_node(code_scan)
     workflow.add_node(agent_node)
     workflow.add_node(vlm_agent_node)
     workflow.add_node(tool_node)
@@ -326,6 +355,7 @@ def create_data_analyze_workflow(
     workflow.add_edge(START, "retrieve_columns")
     workflow.add_edge(["input_guard", "retrieve_columns"], "agent_node")
 
+    workflow.add_conditional_edges("code_scan", execution_selector)
     workflow.add_conditional_edges("tool_node", agent_selector)
     workflow.add_conditional_edges("agent_node", should_continue)
     workflow.add_conditional_edges("vlm_agent_node", should_continue)

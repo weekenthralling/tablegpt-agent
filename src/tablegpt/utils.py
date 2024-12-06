@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import concurrent.futures
+import logging
 import os
 from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple, cast
 
 import pandas as pd
+from codeshield.cs import CodeShield, CodeShieldScanResult
 
 from tablegpt.errors import (
     EncodingDetectionError,
@@ -20,6 +22,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from langchain_core.messages import BaseMessage
+
+logger = logging.getLogger(__name__)
 
 
 def path_from_uri(uri: str) -> Path:
@@ -222,3 +226,35 @@ def filter_content(message: BaseMessage, keep: Sequence[str] | None = None) -> B
         if not isinstance(part, dict) or part.get("type") in keep:
             cloned.content.append(part)
     return cloned
+
+
+async def scan_llm_output(llm_output_code: str) -> str | None:
+    result: CodeShieldScanResult = await CodeShield.scan_code(llm_output_code)
+    if not result.is_insecure:
+        return None
+
+    logger.debug("codeshield scan result: %s", str(result))
+
+    # Handle different recommended treatments based on the scan result
+    # `recommended_treatment` can have three possible states: block, warn, or ignore.
+    # When `recommended_treatment` is "ignore", `is_insecure` will already be `False`, so we don't need to handle this explicitly here.
+    if result.recommended_treatment == "block":
+        recommended_treatment = "Code Security issues found, blocking the code."
+    else:
+        recommended_treatment = "Warning: The generated snippet contains insecure code."
+
+    security_report = f"""## Security Report for Code Snippet
+{recommended_treatment}
+"""
+
+    # When `is_insecure` is `True`, there should be at least one issue found.
+    issue_details = "## Issue Details"
+    for issue in result.issues_found:
+        issue_details += f"""
+    - Description: {issue.description}
+    - Severity: {issue.severity}
+    - Affected Line: {issue.line}
+"""
+    security_report += issue_details
+
+    return security_report
