@@ -8,6 +8,7 @@ from uuid import uuid4
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,
+    HumanMessage,
     SystemMessage,
     ToolMessage,
     trim_messages,
@@ -89,6 +90,18 @@ def get_messages_truncation_config(
             raise ValueError(e_msg)
 
 
+def create_hazardous_hint_message(message: BaseMessage) -> BaseMessage | None:
+    """Generate a hint message based on the message type and hazard category."""
+    if isinstance(message, HumanMessage) and (category := message.additional_kwargs.get("hazard")):
+        # TODO: "敏感话题"?
+        content = f"用户问题可能涉及与 `{category}` 相关的敏感话题，请谨慎回答。"  # noqa: RUF001
+        return SystemMessage(
+            id=str(uuid4()),
+            content=content,
+        )
+    return None
+
+
 def create_data_analyze_workflow(
     llm: BaseLanguageModel,
     pybox_manager: BasePyBoxManager,
@@ -156,17 +169,8 @@ def create_data_analyze_workflow(
             last_message = state["messages"][-1]
             flag, category = await hazard_classifier.ainvoke(input={"input": last_message.content})
             if flag == "unsafe" and category is not None:
-                # TODO: "敏感话题"?
-                content = f"用户问题可能涉及与 `{category}` 相关的敏感话题，请谨慎回答。"  # noqa: RUF001
-                return {
-                    "messages": [
-                        SystemMessage(
-                            id=str(uuid4()),
-                            content=content,
-                            additional_kwargs={"parent_id": state["parent_id"]},
-                        )
-                    ]
-                }
+                last_message.additional_kwargs["hazard"] = category
+                return {"messages": [last_message]}
         return {"messages": []}
 
     async def retrieve_columns(state: AgentState) -> dict:
@@ -210,8 +214,15 @@ def create_data_analyze_workflow(
 
         token_counter, max_tokens = get_messages_truncation_config(llm, trim_message_method)
 
+        messages = state["messages"][:]
+        last_message = messages[-1]
+        if safety_llm is not None and last_message.additional_kwargs.get("hazard") is not None:
+            hazard_message = create_hazardous_hint_message(last_message)
+            if hazard_message is not None:
+                messages.append(hazard_message)
+
         windowed_messages = trim_messages(
-            state["messages"],
+            messages,
             token_counter=token_counter,
             max_tokens=max_tokens,
             start_on="human",  # This means that the first message should be from the user after trimming.
