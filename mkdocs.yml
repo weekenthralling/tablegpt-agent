@@ -9,13 +9,13 @@ theme:
     - content.action.edit
     - content.action.view
   icon:
-    edit: material/pencil 
+    edit: material/pencil
     view: material/eye
   palette:
     # Palette toggle for light mode
     - scheme: default
       toggle:
-        icon: material/brightness-7 
+        icon: material/brightness-7
         name: Switch to dark mode
     # Palette toggle for dark mode
     - scheme: slate
@@ -51,6 +51,7 @@ nav:
   - 'How-To Guides':
     - 'Enhance TableGPT Agent with RAG': howto/retrieval.ipynb
     - 'Persist Messages': howto/persist-messages.ipynb
+    - 'Messages Truncation': howto/messages-truncation.ipynb
     - 'Incluster Code Execution': howto/incluster-code-execution.md
     - 'Normalize Datasets': howto/normalize-datasets.ipynb
     - 'Cleanup Error Trace': howto/cleanup-error-trace.md
