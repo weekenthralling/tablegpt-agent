@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import asdict, dataclass
 from datetime import date  # noqa: TCH003
 from typing import TYPE_CHECKING, Callable, Literal
 from uuid import uuid4
@@ -27,13 +28,71 @@ from tablegpt.tools import (
 from tablegpt.utils import filter_contents
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from langchain_core.agents import AgentAction, AgentFinish
     from langchain_core.language_models import BaseLanguageModel
     from langchain_core.retrievers import BaseRetriever
     from langchain_core.runnables import Runnable
+    from langchain_text_splitters import TextSplitter
     from pybox.base import BasePyBoxManager
+
+
+@dataclass
+class TruncationConfig:
+    """Configuration for message truncation, used by `langchain_core.messages.trim_messages` to control how messages are shortened."""
+
+    token_counter: Callable[[list[BaseMessage]], int] | Callable[[BaseMessage], int] | BaseLanguageModel
+    """Function or llm for counting tokens in a BaseMessage or a list of BaseMessage.
+    If a BaseLanguageModel is passed in then BaseLanguageModel.get_num_tokens_from_messages() will be used.
+    Set to `len` to count the number of **messages** in the chat history."""
+
+    max_tokens: int
+    """Max token count of trimmed messages."""
+
+    strategy: Literal["first", "last"] = "last"
+    """Strategy for trimming.
+    - "first": Keep the first <= n_count tokens of the messages.
+    - "last": Keep the last <= n_count tokens of the messages.
+    Default is "last"."""
+
+    allow_partial: bool = False
+    """Whether to split a message if only part of the message can be included.
+    If ``strategy="last"`` then the last partial contents of a message are included.
+    If ``strategy="first"`` then the first partial contents of a message are included.
+    Default is False."""
+
+    end_on: str | type[BaseMessage] | Sequence[str | type[BaseMessage]] | None = None
+    """The message type to end on. If specified then every message after the last occurrence
+    of this type is ignored. If ``strategy=="last"`` then this is done before we attempt
+    to get the last ``max_tokens``. If ``strategy=="first"`` then this is done after we
+    get the first ``max_tokens``. Can be specified as string names (e.g. "system", "human",
+    "ai", ...) or as BaseMessage classes (e.g. SystemMessage, HumanMessage, AIMessage, ...).
+    Can be a single type or a list of types. Default is None."""
+
+    start_on: str | type[BaseMessage] | Sequence[str | type[BaseMessage]] | None = None
+    """The message type to start on. Should only be specified if ``strategy="last"``.
+    If specified then every message before the first occurrence of this type is ignored.
+    This is done after we trim the initial messages to the last ``max_tokens``. Does not
+    apply to a SystemMessage at index 0 if ``include_system=True``. Can be specified as
+    string names (e.g. "system", "human", "ai", ...) or as BaseMessage classes
+    (e.g. SystemMessage, HumanMessage, AIMessage, ...). Can be a single type or a list
+    of types. Default is None."""
+
+    include_system: bool = False
+    """Whether to keep the SystemMessage if there is one at index 0. Should only be
+    specified if ``strategy="last"``. Default is False."""
+
+    text_splitter: Callable[[str], list[str]] | TextSplitter | None = None
+    """text_splitter: Function or ``langchain_text_splitters.TextSplitter`` for
+    splitting the string contents of a message. Only used if
+    ``allow_partial=True``. If ``strategy="last"`` then the last split tokens
+    from a partial message will be included. if ``strategy=="first"`` then the
+    first split tokens from a partial message will be included. Token splitter
+    assumes that separators are kept, so that split contents can be directly
+    concatenated to recreate the original text. Defaults to splitting on
+    newlines."""
 
 
 INSTRUCTION = """You are TableGPT2, an expert Python data analyst developed by Zhejiang University. Your job is to help user analyze datasets by writing Python code. Each markdown codeblock you write will be executed in an IPython environment, and you will receive the execution output. You should provide results analysis based on the execution output.
@@ -62,24 +121,6 @@ def get_data_analyzer_agent(llm: BaseLanguageModel) -> Runnable:
     return PROMPT | llm | MarkdownOutputParser(language_actions={"python": "python", "py": "python"})
 
 
-def get_messages_truncation_config(
-    blm: BaseLanguageModel | None,
-    trim_message_method: Literal["default", "token_count"] = "default",
-) -> tuple[
-    Callable[[list[BaseMessage]], int] | Callable[[BaseMessage], int] | BaseLanguageModel,
-    int,
-]:
-    match trim_message_method:
-        case "default":
-            return len, 20
-
-        case "token_count":
-            return blm, int((blm.metadata or {}).get("max_history_tokens", 4096))
-        case _:
-            e_msg = f"The expected value should be one of ['default', 'token_count'], but you provided {trim_message_method}."
-            raise ValueError(e_msg)
-
-
 class AgentState(MessagesState):
     # Current Date
     date: date
@@ -100,7 +141,8 @@ def create_data_analyze_workflow(
     safety_llm: Runnable | None = None,
     dataset_retriever: BaseRetriever | None = None,
     verbose: bool = False,
-    trim_message_method: Literal["default", "token_count"] = "default",
+    llm_truncation_config: TruncationConfig | None = None,
+    vlm_truncation_config: TruncationConfig | None = None,
 ) -> Runnable:
     """Creates a data analysis workflow for processing user input and datasets.
 
@@ -119,12 +161,8 @@ def create_data_analyze_workflow(
         safety_llm (Runnable | None, optional): Model used for safety classification of inputs. Defaults to None.
         dataset_retriever (BaseRetriever | None, optional): Component to retrieve dataset columns based on user input. Defaults to None.
         verbose (bool, optional): Flag to enable detailed logging. Defaults to False.
-        trim_message_method (Literal["default", "token_count"], optional): Determines the method used to trim the message. Defaults to "default".
-            - "default": Applies the default trimming method (Truncate using the length of messages, default max length is 20).
-            - "token_count": Use token count to truncate messages.
-                Ensure the `BaseLanguageModel` has the `get_num_tokens_from_messages` method.
-                And set `max_history_tokens` in `BaseLanguageModel.metadata`, e.g., {"max_history_tokens": 4096} (default 4096).
-                You can specify the value using: `max_model_len (max tokens the service supports) - max_new_tokens (tokens needed for the request)`.
+        llm_truncation_config (TruncationConfig | None, optional): Truncation config for LLM. Defaults to None.
+        vlm_truncation_config (TruncationConfig | None, optional): Truncation config for VLM. Defaults to None.
 
     Returns:
         Runnable: A runnable object representing the data analysis workflow.
@@ -196,13 +234,11 @@ Please respond with care and professionalism. Avoid engaging with harmful or une
             )
             messages.append(hint_message)
 
-        token_counter, max_tokens = get_messages_truncation_config(llm, trim_message_method)
-        windowed_messages = trim_messages(
-            messages,
-            token_counter=token_counter,
-            max_tokens=max_tokens,
-            start_on="human",  # This means that the first message should be from the user after trimming.
-            # The system message is not in `messages`, so we don't need to specify `include_system`
+        # NOTE: If llm_truncation_config is None, we will not truncate the messages.
+        windowed_messages = (
+            trim_messages(messages, **asdict(llm_truncation_config))
+            if isinstance(llm_truncation_config, TruncationConfig)
+            else messages
         )
         # Keep only 'text' and 'table' content
         filtered_messages = filter_contents(windowed_messages, keep={"text", "table"})
@@ -228,15 +264,11 @@ Please respond with care and professionalism. Avoid engaging with harmful or une
         return {"messages": messages}
 
     async def vlm_agent_node(state: AgentState) -> dict:
-        # Truncate messages based on message count.
-        token_counter, max_tokens = get_messages_truncation_config(vlm, trim_message_method)
-
-        windowed_messages: list[BaseMessage] = trim_messages(
-            state["messages"],
-            token_counter=token_counter,
-            max_tokens=max_tokens,
-            start_on="human",  # This means that the first message should be from the user after trimming.
-            # The system message is not in `messages`, so we don't need to specify `include_system`
+        # NOTE: If vlm_truncation_config is None, we will not truncate the messages.
+        windowed_messages: list[BaseMessage] = (
+            trim_messages(state["messages"], **asdict(vlm_truncation_config))
+            if isinstance(vlm_truncation_config, TruncationConfig)
+            else state["messages"]
         )
         # NOTE: This is hacky, but VLMs have limits on the number of images they can process.
         # First we keep only 'text' part for all windowed messages except the last one.
