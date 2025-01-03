@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Literal
 
 from langchain_core.callbacks.manager import CallbackManagerForToolRun  # noqa: TCH002
 from langchain_core.tools import BaseTool
-from pybox.base import BasePyBoxManager  # noqa: TCH002
+from pybox.base import BasePyBox, BasePyBoxManager  # noqa: TCH002
 from pydantic import BaseModel, DirectoryPath, field_validator, model_validator
 
 if version_info >= (3, 12):
@@ -139,10 +139,10 @@ class IPythonTool(BaseTool):
             tuple: A tuple containing the content (a list of strings or dictionaries) and artifacts (a list of Artifact objects).
         """
         kwargs = {"cwd": str(self.cwd)} if self.cwd is not None else {}
-        box = await self.pybox_manager.astart(kernel_id=self.session_id, **kwargs)
+        box: BasePyBox = await self.pybox_manager.start(kernel_id=self.session_id, **kwargs)
 
         try:
-            res: PyBoxOut = await box.arun(code=query)
+            res: PyBoxOut = await box.run(code=query)
         except TimeoutError:
             return "Execution timed out. Please try again.", []
 
