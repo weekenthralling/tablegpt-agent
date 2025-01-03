@@ -4,25 +4,20 @@ import asyncio
 import datetime
 import json
 import logging
-import traceback
 from typing import TYPE_CHECKING, Any
 
 import aiofiles
-from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.messages import HumanMessage
 from tqdm.asyncio import tqdm
+from traitlets import import_item
 
-from .evaluatee import create_evaluatee_runnable, evaluatee_context
-from .evaluator import create_evaluator_runnable
-from .evaluator.prompt import (
-    DEFAULT_CRITERIA_WITH_REFERENCE_ANSWER,
-    DEFAULT_CRITERIA_WITHOUT_REFERENCE_ANSWER,
-)
-from .workflow import create_eval_workflow
+from .evaluatee import AbstractEvaluatee
+from .worker import Worker
 
 if TYPE_CHECKING:
+    from langchain_core.messages import BaseMessage
+
     from agent_eval.config import EvalSettings
-    from langgraph.checkpoint.base import Checkpoint
 
 
 logger = logging.getLogger(__name__)
@@ -35,21 +30,18 @@ class Runner:
     """Evaluation task runner.
 
     config(config.EvalSettings): evaluation configuration.
-    client(langfuse.Langfuse): Langfuse client.
-    evaluator(langchain_core.runnables.Runnable): Evaluator used to evaluate the evaluatee's answer.
     """
 
     def __init__(self, config: EvalSettings) -> None:
-        """Initialize the Evaluator with the given configuration.
+        """Initialize the Evaluation runner with the given configuration.
 
         Args:
-            config (dict): Configuration dictionary for the Evaluator.
+            config (dict): Configuration dictionary for the Evaluation.
         """
-
-        logger.info("Initializing evaluator with config: %s}", config)
         self.config = config
-        self.evaluator = create_evaluator_runnable(ChatOpenAI(**config.evaluator))
-        logger.info("Evaluator initialized")
+        self.evaluatee_class = import_item(config.evaluatee_class)
+        if not issubclass(self.evaluatee_class, AbstractEvaluatee):
+            raise TypeError(f"{config.evaluatee_class} is not a subclass of AbstractEvaluatee")
 
     async def run(self, stop_event: asyncio.Event) -> None:
         """Gather evaluation samples and run the evaluation process, in parallel."""
@@ -63,7 +55,14 @@ class Runner:
             try:
                 eval_tasks = [
                     asyncio.create_task(
-                        self.worker(queue, stop_event, pbar),
+                        Worker(
+                            queue,
+                            self.evaluatee_class.instance(),
+                            stop_event,
+                            pbar,
+                            self.config.evaluator,
+                            eval_run_output_file,
+                        ).run(),
                         name=f"worker-{i}",
                     )
                     for i in range(self.config.max_concurrency)
@@ -74,110 +73,6 @@ class Runner:
                 logger.exception("Error in evaluator")
             finally:
                 logger.info("Shutting down evaluator...")
-
-    async def worker(
-        self,
-        queue: asyncio.Queue,
-        stop_event: asyncio.Event,
-        pbar: tqdm | None = None,
-    ) -> None:
-        """Worker to process tasks from the task queue.
-
-        Args:
-            queue (asyncio.Queue): Task queue.
-            stop_event (asyncio.Event): Stop events to signal the worker to stop.
-            pbar (tqdm | None, optional): Progress bar to update task progress. Defaults to None.
-        """
-        logger.info("Worker started")
-        async with evaluatee_context() as context:
-            while not stop_event.is_set():
-                try:
-                    payload = queue.get_nowait()
-                    await self.run_eval(payload=payload, evaluatee_context=context)
-                    if pbar is not None:
-                        pbar.update(1)
-                except asyncio.QueueEmpty:
-                    # No more tasks in the queue, quit current worker
-                    logger.info("Worker finished")
-                    break
-                except Exception:
-                    logger.exception("Worker encountered an error")
-                    stop_event.set()  # Set the stop event to cancel other workers
-                    break
-
-    async def run_eval(
-        self,
-        payload: dict[str, Any],
-        evaluatee_context: dict[str, Any] | None = None,
-    ) -> None:
-        """Run the evaluation workflow.
-        Usually a evaluatee runnable will be executed, followed by a evaluator runnable.
-
-        Args:
-            payload (dict[str, Any]): Evaluation payload.
-            evaluatee_context (dict[str, Any] | None, optional): Context to be passed to the evaluatee. Defaults to None.
-        """
-
-        if evaluatee_context is None:
-            evaluatee_context = {}
-
-        checkpointer = MemorySaver()
-        evaluatee = await create_evaluatee_runnable(
-            datasets=payload.get("datasets"),
-            checkpointer=checkpointer,
-            **evaluatee_context,
-        )
-
-        eval_wf = create_eval_workflow(evaluatee=evaluatee, evaluator=self.evaluator)
-
-        item: dict[str, Any] = payload["item"]
-        criteria = payload.get("criteria")
-        try:
-            res = await eval_wf.ainvoke(
-                input={
-                    "input": item["input"],
-                    "reference_answer": item["expected_output"],
-                    "criteria": criteria,
-                    "redlines": payload.get("redlines", []),
-                },
-            )
-            evaluation = res["evaluation"]
-            evaluatee_answer = res["evaluatee_answer"]
-        except Exception:
-            logger.exception(
-                "Evaluation Workflow failed, item: %s, context: %s",
-                item["input"],
-                evaluatee_context,
-            )
-            # We treat any exception in agent invocation as a bad case
-            err_info = traceback.format_exc()
-            evaluation = {
-                "score": 0,
-                "explaination": err_info,
-            }
-            evaluatee_answer = ""
-
-        # TODO: get rid of the 'session_id'. It's a evaluatee thing.
-        checkpoint: Checkpoint = checkpointer.get(
-            config={
-                "configurable": {"thread_id": evaluatee_context["session_id"]},
-            }
-        )
-        messages = checkpoint["channel_values"].get("messages", [])
-        messages = [message.dict() for message in messages]
-
-        eval_result = {
-            "input": item["input"],
-            "evaluation": evaluation,
-            "reference_answer": item["expected_output"],
-            "evaluatee_answer": evaluatee_answer,
-            "criteria": criteria,
-            "redlines": payload.get("redlines", []),
-            "messages": messages,
-        }
-
-        async with aiofiles.open(eval_run_output_file, mode="a") as f:
-            await f.write(json.dumps(eval_result, ensure_ascii=False) + "\n")
 
 
 async def enqueue_samples(queue: asyncio.Queue, dataset_configs: list[dict], num_repetitions: int = 1) -> None:
@@ -206,26 +101,17 @@ async def enqueue_samples(queue: asyncio.Queue, dataset_configs: list[dict], num
                 await queue.put(sample)
 
 
-def construct_samples(dataset: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def construct_samples(dataset: list[dict[str, Any]]) -> list[BaseMessage]:
     """Constructs a list of samples from the dataset, filtering out archived items and adding metadata.
 
     Args:
         dataset (list[dict[str, Any]]): The dataset containing items with 'status', 'attachments', and 'expected_output' keys.
 
     Returns:
-        list[dict[str, Any]]: A list of samples, each containing the item, its attachments, and evaluation criteria.
+        list[BaseMessage]: A list of `HumanMessage` objects, each containing the item’s input and associated metadata (e.g., attachments, expected output, and evaluation criteria).
     """
     # Filter out archived samples
     active_samples = [sample for sample in dataset if sample["status"] != "ARCHIVED"]
 
     # Construct samples with additional metadata
-    return [
-        {
-            "item": sample,
-            "datasets": sample.get("attachments", []),
-            "criteria": DEFAULT_CRITERIA_WITH_REFERENCE_ANSWER
-            if sample["expected_output"]
-            else DEFAULT_CRITERIA_WITHOUT_REFERENCE_ANSWER,
-        }
-        for sample in active_samples
-    ]
+    return [HumanMessage(content=sample.pop("input"), additional_kwargs=sample) for sample in active_samples]

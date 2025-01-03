@@ -1,136 +1,32 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 import logging
-import shutil
-from contextlib import asynccontextmanager
-from pathlib import Path
-from typing import TYPE_CHECKING, TypedDict
-from uuid import uuid4
+from contextlib import AbstractAsyncContextManager
+from typing import TYPE_CHECKING
 
-from langchain_core.messages import HumanMessage
-from langchain_openai import ChatOpenAI
-from pybox import LocalPyBoxManager
-from pybox.kube import KubePyBoxManager
-from tablegpt.agent import create_tablegpt_graph
-from tablegpt.agent.file_reading import Stage
-
-from .evaluatee_config import Settings
 
 if TYPE_CHECKING:
-    from langchain_core.runnables import Runnable
-    from langgraph.checkpoint.base import BaseCheckpointSaver
-    from langgraph.graph.graph import CompiledGraph
+    from typing import Self
+
+    from langchain_core.messages import BaseMessage
 
 
 logger = logging.getLogger(__name__)
 
 
-settings = Settings(_env_file=[".env"], _env_file_encoding="utf-8")
+class AbstractEvaluatee(AbstractAsyncContextManager, ABC):
+    @abstractmethod
+    async def _call(self, message: BaseMessage, **kwargs) -> list[BaseMessage]: ...
 
-if settings.ipython_kernel.incluster:
-    import os
+    async def __call__(self, message: BaseMessage, **kwargs) -> list[BaseMessage]:
+        # TODO: add callback to handle errors or other events
+        return await self._call(message, **kwargs)
 
-    # Clear default mask. Allow the kernel to read and write shared volumes.
-    os.umask(000)
-    pybox_manager = KubePyBoxManager(
-        env_file=settings.ipython_kernel.env_file,
-    )
-else:
-    pybox_manager = LocalPyBoxManager()
+    @property
+    def context(self):
+        return {}
 
-llm_args = settings.llm
-model_type = llm_args.get("metadata", {}).get("model_type")
-llm = ChatOpenAI(**llm_args)
-
-vlm = ChatOpenAI(**settings.vlm) if settings.vlm else None
-normalize_llm = ChatOpenAI(**settings.normalize_llm) if settings.normalize_llm is not None else None
-
-
-# TODO: a copy-paste from tablegpt-chat
-# We need to refactor this and push it down to tablegpt-agent
-class Attachment(TypedDict):
-    filename: str
-    mimetype: str
-    size: int = 0
-
-
-@asynccontextmanager
-async def evaluatee_context():
-    """Make a context for TableGPT evaluatee.
-
-    Yields:
-        dict[str, Any]: kwargs to be passed to the workflow.
-    """
-    # A unique session id for this context. All evaluatee workflow under this context will share one Ipython kernel.
-    session_id = f"eval-session-{uuid4().hex}"
-
-    workdir = Path(settings.data_vol, session_id)
-    logger.debug("Creating workdir: %s", workdir)
-    workdir.mkdir(parents=True, exist_ok=True)
-
-    # Spawn a kernel ahead
-    await pybox_manager.astart(kernel_id=session_id, cwd=workdir)
-
-    try:
-        yield {
-            "workdir": workdir,
-            "session_id": session_id,
-        }
-    finally:
-        logger.debug("Cleaning up worker resources...")
-        logger.debug("Shutting down kernel: %s", session_id)
-        await pybox_manager.ashutdown(session_id)
-        logger.debug("Removing workdir: %s", workdir)
-        shutil.rmtree(workdir, ignore_errors=True)
-        logger.debug("Worker resources cleaned up")
-
-
-async def create_evaluatee_runnable(
-    datasets: list[str],
-    workdir: Path,
-    session_id: str | None = None,
-    checkpointer: BaseCheckpointSaver | None = None,
-) -> Runnable:
-    """Create a evaluatee runnable.
-
-    Args:
-        datasets (list[str]): Evaluation datasets.
-        workdir (Path): Work directory.
-        session_id (str | None, optional): Session ID. Defaults to None.
-
-    Returns:
-        Runnable: Evaluatee runnable.
-    """
-    wf: CompiledGraph = create_tablegpt_graph(
-        llm=llm,
-        pybox_manager=pybox_manager,
-        workdir=workdir,
-        vlm=vlm,
-        session_id=session_id,
-        checkpointer=checkpointer,
-        normalize_llm=normalize_llm,
-        error_trace_cleanup=settings.error_trace_cleanup,
-    ).with_config(
-        config={
-            "configurable": {"thread_id": session_id},
-        },
-    )
-    parent_id = str(uuid4())
-    attachments = [Attachment(filename=file, mimetype="text/csv") for file in datasets]
-    attachment_msg = HumanMessage(
-        content="",
-        additional_kwargs={
-            "parent_id": parent_id,
-            "attachments": attachments,
-            "var_name": "df",
-        },
-    )
-    await wf.ainvoke(
-        input={
-            "messages": [attachment_msg],
-            "parent_id": parent_id,
-            "entry_message": attachment_msg,
-            "processing_stage": Stage.UPLOADED,
-        }
-    )
-    return wf
+    @classmethod
+    @abstractmethod
+    def instance(cls) -> Self: ...

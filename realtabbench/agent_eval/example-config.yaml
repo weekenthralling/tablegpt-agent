@@ -10,6 +10,8 @@ metadata:
 datasets:
   - name: /datasets/tablegpt-eval-normal.json
 
+evaluatee_class: "agent_eval.tablegpt_evaluatee.TablegptEvaluatee"
+
 evaluator:
   openai_api_base: http://localhost:8080/v1
   openai_api_key: nothing
