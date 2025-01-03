@@ -1,21 +1,23 @@
+from __future__ import annotations
+
 import asyncio
-import datetime
 import json
 import logging
 import traceback
-from typing import Any, AsyncContextManager, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import aiofiles
 from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.memory import MemorySaver
 from tqdm.asyncio import tqdm
 
 from .evaluator import create_evaluator_runnable
-from .evaluatee import create_evaluatee_runnable
-from .workflow import create_eval_workflow
+from .evaluator.prompt import (DEFAULT_CRITERIA_WITH_REFERENCE_ANSWER,
+                               DEFAULT_CRITERIA_WITHOUT_REFERENCE_ANSWER)
 
 if TYPE_CHECKING:
-    from langgraph.checkpoint.base import Checkpoint
+    from langchain_core.messages import BaseMessage
+
+    from .evaluatee import AbstractEvaluatee
 
 logger = logging.getLogger(__name__)
 
@@ -24,25 +26,27 @@ class Worker:
     def __init__(
         self,
         queue: asyncio.Queue,
+        evaluatee: AbstractEvaluatee,
         stop_event: asyncio.Event | None = None,
         pbar: tqdm | None = None,
         evaluator_config: dict[str, Any] = {},
-        lifespan: AsyncContextManager | None = None,
+        eval_run_output_file: str = "eval-result.jsonl",
     ) -> None:
         self.queue = queue
+        self.evaluatee = evaluatee
         self.stop_event = stop_event
         self.pbar = pbar
         self.evaluator_config = evaluator_config
-        self.lifespan = lifespan
+        self.eval_run_output_file = eval_run_output_file
 
     async def run(self) -> None:
         logger.info("Worker started")
-        async with self.lifespan() as context:
+        async with self.evaluatee:
             while self.stop_event is None or not self.stop_event.is_set():
                 try:
-                    payload = self.queue.get_nowait()
-                    executor = TableGPTEvalExecutor(evaluator_config=self.evaluator_config, evaluatee_context=context)
-                    await executor.run(payload=payload)
+                    sample = self.queue.get_nowait()
+                    executor = EvalExecutor(self.evaluatee, self.evaluator_config, self.eval_run_output_file)
+                    await executor.run(sample)
                     if self.pbar is not None:
                         self.pbar.update(1)
                 except asyncio.QueueEmpty:
@@ -57,50 +61,53 @@ class Worker:
                     break
 
 
-class AbstractEvalExecutor:
-    ...
-
-
-class TableGPTEvalExecutor(AbstractEvalExecutor):
-    def __init__(self, evaluator_config: dict, evaluatee_context: dict[str, Any] | None = None) -> None:
+class EvalExecutor:
+    def __init__(
+        self,
+        evaluatee: AbstractEvaluatee,
+        evaluator_config: dict[str, Any],
+        eval_run_output_file: str = "eval-result.jsonl",
+    ) -> None:
         self.evaluator = create_evaluator_runnable(ChatOpenAI(**evaluator_config))
-        self.evaluatee_context = evaluatee_context if evaluatee_context is not None else {}
-        self.eval_run_output_file = f"eval_run_{datetime.datetime.now(tz=datetime.UTC).strftime('%Y%m%d_%H%M%S')}.jsonl"
+        self.evaluatee = evaluatee
+        self.eval_run_output_file = eval_run_output_file
 
-    async def run(self, payload: dict[str, Any]) -> None:
+    async def run(self, sample: BaseMessage) -> None:
         """Run the evaluation workflow.
         Usually a evaluatee runnable will be executed, followed by a evaluator runnable.
 
         Args:
-            payload (dict[str, Any]): Evaluation payload.
+            sample (BaseMessage): Evaluation sample.
         """
-        logger.debug("Evaluating sample: %s", payload)
-        item: dict[str, Any] = payload["item"]
-
-        checkpointer = MemorySaver()
-        evaluatee = await create_evaluatee_runnable(
-            datasets=payload.get("datasets"),
-            checkpointer=checkpointer,
-            **self.evaluatee_context,
+        logger.debug("Evaluating sample: %s", sample)
+        criteria = (
+            sample.additional_kwargs.get("criteria")
+            if sample.additional_kwargs.get("criteria")
+            else (
+                DEFAULT_CRITERIA_WITH_REFERENCE_ANSWER
+                if sample.additional_kwargs.get("expected_output")
+                else DEFAULT_CRITERIA_WITHOUT_REFERENCE_ANSWER
+            )
         )
-        self.eval_wf = create_eval_workflow(evaluatee=evaluatee, evaluator=self.evaluator)
-        criteria = payload.get("criteria")
+        reference_answer = sample.additional_kwargs.get("expected_output")
+        redlines = sample.additional_kwargs.get("redlines", [])
         try:
-            res = await self.eval_wf.ainvoke(
+            messages = await self.evaluatee(sample)
+            evaluatee_answer = messages[-1].content
+            evaluation = await self.evaluator.ainvoke(
                 input={
-                    "input": item["input"],
-                    "reference_answer": item["expected_output"],
+                    "question": sample.content,
+                    "reference_answer": reference_answer,
+                    "answer": evaluatee_answer,
                     "criteria": criteria,
-                    "redlines": payload.get("redlines", []),
+                    "redlines": redlines,
                 },
             )
-            evaluation = res["evaluation"]
-            evaluatee_answer = res["evaluatee_answer"]
         except Exception:
             logger.exception(
                 "Evaluation Workflow failed, item: %s, context: %s",
-                item["input"],
-                self.evaluatee_context,
+                sample,
+                self.evaluatee.context,
             )
             # We treat any exception in agent invocation as a bad case
             err_info = traceback.format_exc()
@@ -109,23 +116,17 @@ class TableGPTEvalExecutor(AbstractEvalExecutor):
                 "explaination": err_info,
             }
             evaluatee_answer = ""
+            messages = []
 
-        # TODO: get rid of the 'session_id'. It's a evaluatee thing.
-        checkpoint: Checkpoint = checkpointer.get(
-            config={
-                "configurable": {"thread_id": self.evaluatee_context["session_id"]},
-            }
-        )
-        messages = checkpoint["channel_values"].get("messages", [])
-        messages = [message.dict() for message in messages]
+        messages = [message.model_dump() for message in messages]
 
         eval_result = {
-            "input": item["input"],
+            "input": sample.content,
             "evaluation": evaluation,
-            "reference_answer": item["expected_output"],
+            "reference_answer": reference_answer,
             "evaluatee_answer": evaluatee_answer,
             "criteria": criteria,
-            "redlines": payload.get("redlines", []),
+            "redlines": redlines,
             "messages": messages,
         }
 

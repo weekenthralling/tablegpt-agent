@@ -7,16 +7,16 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import aiofiles
+from langchain_core.messages import HumanMessage
 from tqdm.asyncio import tqdm
+from traitlets import import_item
 
-from .evaluator.prompt import (
-    DEFAULT_CRITERIA_WITH_REFERENCE_ANSWER,
-    DEFAULT_CRITERIA_WITHOUT_REFERENCE_ANSWER,
-)
-from .evaluatee import evaluatee_context
+from .evaluatee import AbstractEvaluatee
 from .worker import Worker
 
 if TYPE_CHECKING:
+    from langchain_core.messages import BaseMessage
+
     from agent_eval.config import EvalSettings
 
 
@@ -39,6 +39,9 @@ class Runner:
             config (dict): Configuration dictionary for the Evaluation.
         """
         self.config = config
+        self.evaluatee_class = import_item(config.evaluatee_class)
+        if not issubclass(self.evaluatee_class, AbstractEvaluatee):
+            raise TypeError(f"{config.evaluatee_class} is not a subclass of AbstractEvaluatee")
 
     async def run(self, stop_event: asyncio.Event) -> None:
         """Gather evaluation samples and run the evaluation process, in parallel."""
@@ -52,7 +55,14 @@ class Runner:
             try:
                 eval_tasks = [
                     asyncio.create_task(
-                        Worker(queue, stop_event, pbar, self.config.evaluator, evaluatee_context).run(),
+                        Worker(
+                            queue,
+                            self.evaluatee_class.instance(),
+                            stop_event,
+                            pbar,
+                            self.config.evaluator,
+                            eval_run_output_file,
+                        ).run(),
                         name=f"worker-{i}",
                     )
                     for i in range(self.config.max_concurrency)
@@ -91,26 +101,17 @@ async def enqueue_samples(queue: asyncio.Queue, dataset_configs: list[dict], num
                 await queue.put(sample)
 
 
-def construct_samples(dataset: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def construct_samples(dataset: list[dict[str, Any]]) -> list[BaseMessage]:
     """Constructs a list of samples from the dataset, filtering out archived items and adding metadata.
 
     Args:
         dataset (list[dict[str, Any]]): The dataset containing items with 'status', 'attachments', and 'expected_output' keys.
 
     Returns:
-        list[dict[str, Any]]: A list of samples, each containing the item, its attachments, and evaluation criteria.
+        list[BaseMessage]: A list of `HumanMessage` objects, each containing the item’s input and associated metadata (e.g., attachments, expected output, and evaluation criteria).
     """
     # Filter out archived samples
     active_samples = [sample for sample in dataset if sample["status"] != "ARCHIVED"]
 
     # Construct samples with additional metadata
-    return [
-        {
-            "item": sample,
-            "datasets": sample.get("attachments", []),
-            "criteria": DEFAULT_CRITERIA_WITH_REFERENCE_ANSWER
-            if sample["expected_output"]
-            else DEFAULT_CRITERIA_WITHOUT_REFERENCE_ANSWER,
-        }
-        for sample in active_samples
-    ]
+    return [HumanMessage(content=sample.pop("input"), additional_kwargs=sample) for sample in active_samples]

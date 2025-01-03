@@ -26,6 +26,7 @@ class EvalSettings(BaseSettings):
     max_concurrency: PositiveInt = 1
     num_repetitions: PositiveInt = 1
 
+    evaluatee_class: str
     evaluator: dict[str, Any]
 
 
