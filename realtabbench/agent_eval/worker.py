@@ -7,6 +7,7 @@ import traceback
 from typing import TYPE_CHECKING, Any
 
 import aiofiles
+from langchain_core.messages import AIMessage
 from langchain_openai import ChatOpenAI
 from tqdm.asyncio import tqdm
 
@@ -91,10 +92,46 @@ class EvalExecutor:
         )
         reference_answer = sample.additional_kwargs.get("expected_output")
         redlines = sample.additional_kwargs.get("redlines", [])
+
+        eval_result = {
+            "input": sample.content,
+            "reference_answer": reference_answer,
+            "evaluatee_answer": "",
+            "criteria": criteria,
+            "redlines": redlines,
+        }
+
         try:
-            messages = await self.evaluatee(sample)
-            evaluatee_answer = messages[-1].content
-            evaluation = await self.evaluator.ainvoke(
+            eval_result["messages"] = await self.evaluatee(sample)
+        except Exception:
+            logger.exception(
+                "Evaluation Workflow failed, item: %s, context: %s",
+                sample,
+                self.evaluatee.context,
+            )
+            eval_result["messages"] = []
+            # We treat any exception in agent invocation as a bad case
+            eval_result["evaluation"] = {
+                "score": 0,
+                "explaination": traceback.format_exc(),
+            }
+
+        try:
+            if not eval_result["messages"]:
+                raise ValueError(  # noqa: TRY301, TRY003
+                    "Evaluatee did not generate any messages."  # noqa: EM101
+                    "Ensure the Evaluatee is implemented correctly and returns a valid response."
+                )
+
+            if not isinstance(eval_result["messages"][-1], AIMessage):
+                raise TypeError(  # noqa: TRY301, TRY003
+                    f"The final message in the output from Evaluatee is of type '{type(eval_result["messages"][-1]).__name__}', "  # noqa: EM102
+                    "but it must be an instance of 'AIMessage'. Please verify the Evaluatee implementation."
+                )
+
+            evaluatee_answer = eval_result["messages"][-1].content
+            eval_result["evaluatee_answer"] = evaluatee_answer
+            eval_result["evaluation"] = await self.evaluator.ainvoke(
                 input={
                     "question": sample.content,
                     "reference_answer": reference_answer,
@@ -105,30 +142,17 @@ class EvalExecutor:
             )
         except Exception:
             logger.exception(
-                "Evaluation Workflow failed, item: %s, context: %s",
+                "Evaluator invocation failed, item: %s, context: %s",
                 sample,
                 self.evaluatee.context,
             )
-            # We treat any exception in agent invocation as a bad case
-            err_info = traceback.format_exc()
-            evaluation = {
+            # We treat any exception in evaluator invocation as a bad case
+            eval_result["evaluation"] = {
                 "score": 0,
-                "explaination": err_info,
+                "explaination": traceback.format_exc(),
             }
-            evaluatee_answer = ""
-            messages = []
 
-        messages = [message.model_dump() for message in messages]
-
-        eval_result = {
-            "input": sample.content,
-            "evaluation": evaluation,
-            "reference_answer": reference_answer,
-            "evaluatee_answer": evaluatee_answer,
-            "criteria": criteria,
-            "redlines": redlines,
-            "messages": messages,
-        }
+        eval_result["messages"] = [message.model_dump() for message in eval_result["messages"]]
 
         async with aiofiles.open(self.eval_run_output_file, mode="a") as f:
             await f.write(json.dumps(eval_result, ensure_ascii=False) + "\n")
