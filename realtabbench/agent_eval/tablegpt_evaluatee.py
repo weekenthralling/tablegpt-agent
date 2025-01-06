@@ -131,6 +131,7 @@ class TablegptEvaluatee(AbstractEvaluatee):
         llm: BaseLanguageModel,
         pybox_manager: BasePyBoxManager,
         data_vol: str,
+        *,
         error_trace_cleanup: bool = True,
         vlm: BaseLanguageModel | None = None,
         normalize_llm: BaseLanguageModel | None = None,
@@ -166,21 +167,23 @@ class TablegptEvaluatee(AbstractEvaluatee):
 
         logger.debug("Worker resources cleaned up")
 
-    async def _call(self, message: BaseMessage, **kwargs) -> list[BaseMessage]:
+    async def _call(self, message: BaseMessage, **kwargs) -> list[BaseMessage]:  # noqa: ARG002
+        checkpointer = MemorySaver()
+        config = {
+            "configurable": {"thread_id": self.session_id},
+        }
         tablegpt_graph: CompiledGraph = create_tablegpt_graph(
             llm=self.llm,
             pybox_manager=self.pybox_manager,
             workdir=self.workdir,
             vlm=self.vlm,
             session_id=self.session_id,
-            checkpointer=MemorySaver(),
+            checkpointer=checkpointer,
             normalize_llm=self.normalize_llm,
             safety_llm=self.guard_llm,
             error_trace_cleanup=self.error_trace_cleanup,
         ).with_config(
-            config={
-                "configurable": {"thread_id": self.session_id},
-            },
+            config=config,
         )
         parent_id = str(uuid4())
         attachments = [
@@ -194,24 +197,29 @@ class TablegptEvaluatee(AbstractEvaluatee):
                 "var_name": "df",
             },
         )
-        # file reading
-        await tablegpt_graph.ainvoke(
-            input={
-                "messages": [attachment_msg],
-                "parent_id": parent_id,
-                "entry_message": attachment_msg,
-                "processing_stage": Stage.UPLOADED,
-            }
-        )
-        # data analysis
-        state = await tablegpt_graph.ainvoke(
-            input={
-                "parent_id": str(uuid4()),
-                "messages": [HumanMessage(content=message.content)],
-                "date": date.today(),  # noqa: DTZ011
-            }
-        )
-        return state["messages"]
+        try:
+            # file reading
+            await tablegpt_graph.ainvoke(
+                input={
+                    "messages": [attachment_msg],
+                    "parent_id": parent_id,
+                    "entry_message": attachment_msg,
+                    "processing_stage": Stage.UPLOADED,
+                }
+            )
+            # data analysis
+            state = await tablegpt_graph.ainvoke(
+                input={
+                    "parent_id": str(uuid4()),
+                    "messages": [HumanMessage(content=message.content)],
+                    "date": date.today(),  # noqa: DTZ011
+                }
+            )
+            return state["messages"]
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Tablegpt evaluatee execution failed: %s", str(e))
+            checkpoint = await checkpointer.aget(config=config)
+            return checkpoint["channel_values"].get("messages", [])
 
     @property
     def context(self):
