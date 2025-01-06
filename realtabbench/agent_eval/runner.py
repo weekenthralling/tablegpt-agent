@@ -15,9 +15,8 @@ from .evaluatee import AbstractEvaluatee
 from .worker import Worker
 
 if TYPE_CHECKING:
-    from langchain_core.messages import BaseMessage
-
     from agent_eval.config import EvalSettings
+    from langchain_core.messages import BaseMessage
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +40,7 @@ class Runner:
         self.config = config
         self.evaluatee_class = import_item(config.evaluatee_class)
         if not issubclass(self.evaluatee_class, AbstractEvaluatee):
-            raise TypeError(f"{config.evaluatee_class} is not a subclass of AbstractEvaluatee")
+            raise TypeError(f"{config.evaluatee_class} is not a subclass of AbstractEvaluatee")  # noqa: TRY003, EM102
 
     async def run(self, stop_event: asyncio.Event) -> None:
         """Gather evaluation samples and run the evaluation process, in parallel."""
@@ -108,7 +107,7 @@ def construct_samples(dataset: list[dict[str, Any]]) -> list[BaseMessage]:
         dataset (list[dict[str, Any]]): The dataset containing items with 'status', 'attachments', and 'expected_output' keys.
 
     Returns:
-        list[BaseMessage]: A list of `HumanMessage` objects, each containing the item’s input and associated metadata (e.g., attachments, expected output, and evaluation criteria).
+        list[BaseMessage]: A list of `HumanMessage` objects, each containing the item's input and associated metadata (e.g., attachments, expected output, and evaluation criteria).
     """
     # Filter out archived samples
     active_samples = [sample for sample in dataset if sample["status"] != "ARCHIVED"]

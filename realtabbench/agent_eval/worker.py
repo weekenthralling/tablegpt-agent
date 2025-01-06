@@ -9,14 +9,13 @@ from typing import TYPE_CHECKING, Any
 import aiofiles
 from langchain_core.messages import AIMessage
 from langchain_openai import ChatOpenAI
-from tqdm.asyncio import tqdm
 
 from .evaluator import create_evaluator_runnable
-from .evaluator.prompt import (DEFAULT_CRITERIA_WITH_REFERENCE_ANSWER,
-                               DEFAULT_CRITERIA_WITHOUT_REFERENCE_ANSWER)
+from .evaluator.prompt import DEFAULT_CRITERIA_WITH_REFERENCE_ANSWER, DEFAULT_CRITERIA_WITHOUT_REFERENCE_ANSWER
 
 if TYPE_CHECKING:
     from langchain_core.messages import BaseMessage
+    from tqdm.asyncio import tqdm
 
     from .evaluatee import AbstractEvaluatee
 
@@ -30,14 +29,14 @@ class Worker:
         evaluatee: AbstractEvaluatee,
         stop_event: asyncio.Event | None = None,
         pbar: tqdm | None = None,
-        evaluator_config: dict[str, Any] = {},
+        evaluator_config: dict[str, Any] | None = None,
         eval_run_output_file: str = "eval-result.jsonl",
     ) -> None:
         self.queue = queue
         self.evaluatee = evaluatee
         self.stop_event = stop_event
         self.pbar = pbar
-        self.evaluator_config = evaluator_config
+        self.evaluator_config = evaluator_config if evaluator_config else {}
         self.eval_run_output_file = eval_run_output_file
 
     async def run(self) -> None:

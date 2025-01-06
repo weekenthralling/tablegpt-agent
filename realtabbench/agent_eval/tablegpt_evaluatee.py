@@ -131,6 +131,7 @@ class TablegptEvaluatee(AbstractEvaluatee):
         llm: BaseLanguageModel,
         pybox_manager: BasePyBoxManager,
         data_vol: str,
+        *,
         error_trace_cleanup: bool = True,
         vlm: BaseLanguageModel | None = None,
         normalize_llm: BaseLanguageModel | None = None,
