@@ -3,7 +3,7 @@ from datetime import date
 
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
-from pybox import LocalPyBoxManager
+from pybox import AsyncLocalPyBoxManager
 from tablegpt.agent import create_tablegpt_graph
 
 
@@ -12,7 +12,7 @@ async def main() -> None:
     llm = ChatOpenAI(openai_api_base="YOUR_VLLM_URL", openai_api_key="whatever", model_name="TableGPT2-7B")
 
     # Use local pybox manager for development and testing
-    pybox_manager = LocalPyBoxManager()
+    pybox_manager = AsyncLocalPyBoxManager()
 
     agent = create_tablegpt_graph(
         llm=llm,
