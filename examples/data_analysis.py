@@ -5,7 +5,7 @@ from typing import TypedDict
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-from pybox import LocalPyBoxManager
+from pybox import AsyncLocalPyBoxManager
 from tablegpt import DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR
 from tablegpt.agent import create_tablegpt_graph
 from tablegpt.agent.file_reading import Stage
@@ -27,7 +27,7 @@ async def main() -> None:
     )
 
     # Use local pybox manager for development and testing
-    pybox_manager = LocalPyBoxManager(profile_dir=DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR)
+    pybox_manager = AsyncLocalPyBoxManager(profile_dir=DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR)
 
     agent = create_tablegpt_graph(
         llm=llm,
