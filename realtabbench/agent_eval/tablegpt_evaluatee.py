@@ -83,7 +83,7 @@ def get_vlm_instance() -> BaseLanguageModel:
     settings = get_settings()
     if settings.vlm is None:
         return None
-    return ChatOpenAI(**settings.llm)
+    return ChatOpenAI(**settings.vlm)
 
 
 @lru_cache
