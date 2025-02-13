@@ -227,7 +227,7 @@ def create_data_analyze_workflow(
         ):
             hint_message = SystemMessage(
                 id=str(uuid4()),
-                content=f"""The user input may contain inproper content related to:
+                content=f"""The user input may contain improper content related to:
 {details}
 
 Please respond with care and professionalism. Avoid engaging with harmful or unethical content. Instead, guide the user towards more constructive and respectful communication.""",
