@@ -222,12 +222,12 @@ def create_data_analyze_workflow(
         last_message = messages[-1]
         if (
             isinstance(last_message, HumanMessage)
-            and (hazard := last_message.additional_kwargs.get("hazard") is not None)
-            and (details := hazard_categories.get(hazard) is not None)
+            and ((hazard := last_message.additional_kwargs.get("hazard")) is not None)
+            and ((details := hazard_categories.get(hazard)) is not None)
         ):
             hint_message = SystemMessage(
                 id=str(uuid4()),
-                content=f"""The user input may contain inproper content related to:
+                content=f"""The user input may contain improper content related to:
 {details}
 
 Please respond with care and professionalism. Avoid engaging with harmful or unethical content. Instead, guide the user towards more constructive and respectful communication.""",
