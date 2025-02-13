@@ -222,8 +222,8 @@ def create_data_analyze_workflow(
         last_message = messages[-1]
         if (
             isinstance(last_message, HumanMessage)
-            and (hazard := last_message.additional_kwargs.get("hazard") is not None)
-            and (details := hazard_categories.get(hazard) is not None)
+            and ((hazard := last_message.additional_kwargs.get("hazard")) is not None)
+            and ((details := hazard_categories.get(hazard)) is not None)
         ):
             hint_message = SystemMessage(
                 id=str(uuid4()),
