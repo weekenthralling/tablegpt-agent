@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-import site
+import sysconfig
 import warnings
 from pathlib import Path
 
 
-def _find_tablegpt_ipykernel_profile_dir(path):
-    possible_installation_location = Path(path).parents[2]
-    possible_profile_dir = Path(possible_installation_location, "share", "ipykernel", "profile", "tablegpt")
+def _find_tablegpt_ipykernel_profile_dir():
+    # https://docs.python.org/3.11/library/sysconfig.html#sysconfig.get_path
+    # https://docs.python.org/3.11/library/sysconfig.html#user-scheme
+    _py_root = Path(sysconfig.get_path("data"))
+
+    possible_profile_dir = Path(_py_root, "share", "ipykernel", "profile", "tablegpt")
 
     _startup_folder = Path(possible_profile_dir, "startup")
     try:
@@ -17,17 +20,10 @@ def _find_tablegpt_ipykernel_profile_dir(path):
         return
 
 
-try:
-    DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR: str | None = next(
-        path
-        for path in map(_find_tablegpt_ipykernel_profile_dir, [*site.getsitepackages(), site.getusersitepackages()])
-        if path is not None
-    )
+DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR: str | None = _find_tablegpt_ipykernel_profile_dir()
 
-except StopIteration:
-    # Means not found.
+if DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR is None:
     msg = """Unable to find tablegpt ipykernel. If you need to use a local kernel,
 please use `pip install -U tablegpt-agent[local]` to install the necessary dependencies.
 For more issues, please submit an issue to us https://github.com/tablegpt/tablegpt-agent/issues."""
     warnings.warn(msg, stacklevel=2)
-    DEFAULT_TABLEGPT_IPYKERNEL_PROFILE_DIR = None
